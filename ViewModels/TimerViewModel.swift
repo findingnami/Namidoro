@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import AVFoundation
 
 class TimerViewModel: ObservableObject {
     enum TimerMode {
@@ -25,6 +26,7 @@ class TimerViewModel: ObservableObject {
     init(startTime: Int) {
         self.timeRemaining = startTime
         self.menuBarTitle = "\(startTime / 60)m"
+        self.start()
     }
 
     // Start timer
@@ -32,15 +34,34 @@ class TimerViewModel: ObservableObject {
         guard !isRunning else { return }
         isRunning = true
         timer?.invalidate()
+        
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             DispatchQueue.main.async {
                 if self.isRunning && self.timeRemaining > 0 {
                     self.timeRemaining -= 1
                     self.menuBarTitle = "\(self.timeRemaining / 60)m"
                     
-                    // 🔔 Trigger alert 1 minute before break (only in work mode)
+                    // 🔔 1 minute before break alert (only during work mode)
                     if self.mode == .work && self.timeRemaining == 60 {
                         self.showAlert = true
+                        self.playSound(named: "Alert")
+                        self.showSystemAlert(
+                            title: "Break Incoming",
+                            message: "1 minute left before your break!"
+                        )
+                    }
+                } else if self.isRunning && self.timeRemaining == 0 {
+                    // ⏰ Time’s up — automatically switch modes
+                    self.stop()
+                    
+                    if self.mode == .work {
+                        self.switchToBreakMode()
+                        self.playSound(named: "Mode")
+                        self.start() // auto-start break
+                    } else {
+                        self.switchToWorkMode()
+                        self.playSound(named: "Mode")
+                        self.start() // auto-start work
                     }
                 }
             }
@@ -70,14 +91,39 @@ class TimerViewModel: ObservableObject {
     
     func switchToWorkMode() {
         mode = .work
-        timeRemaining = 25 * 60 // 25 minutes
+        timeRemaining = 2 * 60                    // 25 * 60 // 25 minutes
         isRunning = false
+        playSound(named: "Mode")
     }
 
     func switchToBreakMode() {
         mode = .breakTime
-        timeRemaining = 5 * 60 // 5 minutes
+        timeRemaining = 1 * 60                           // 5 * 60 // 5 minutes
         isRunning = false
+        playSound(named: "Mode")
+    }
+    
+    private var audioPlayer: AVAudioPlayer?
+
+    func playSound(named name: String) {
+        if let soundURL = Bundle.main.url(forResource: name, withExtension: "wav") {
+            do {
+                audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
+                audioPlayer?.play()
+            } catch {
+                print("Error playing sound: \(error)")
+            }
+        } else {
+            print("Sound file not found: \(name)")
+        }
+    }
+    
+    func showSystemAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.runModal()
     }
 }
 
