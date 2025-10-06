@@ -26,5 +26,17 @@ struct NamidoroApp: App {
                 Text("\(timerVM.timeRemaining / 60)m")
             }
         }
+        
+        // 🔹 Full-screen window appears in break mode
+                WindowGroup {
+                    if timerVM.mode == .breakTime {
+                        FullScreenBreakView(timerVM: timerVM)
+                            .ignoresSafeArea()
+                    } else {
+                        EmptyView()
+                    }
+                }
+                .windowStyle(.hiddenTitleBar)
+                .windowResizability(.contentSize)
     }
 }

@@ -39,6 +39,9 @@ struct WorkModeView: View {
         .onAppear {
             timerVM.start() // automatically start when popover opens
         }
+        .alert("1 minute left before break!", isPresented: $timerVM.showAlert) {
+                    Button("OK", role: .cancel) { timerVM.showAlert = false }
+                }
     }
 }
 
