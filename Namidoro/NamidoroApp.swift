@@ -1,0 +1,26 @@
+//
+//  NamidoroApp.swift
+//  Namidoro
+//
+//  Created by Maria Rachel on 9/24/25.
+//
+
+import SwiftUI
+
+@main
+struct NamidoroApp: App {
+    @StateObject private var timerVM = TimerViewModel(startTime: 25 * 60)
+
+    var body: some Scene {
+        MenuBarExtra(isInserted: .constant(true)) {
+            // Popover content
+            WorkModeView(timerVM: timerVM)
+        } label: {
+            // Label with icon on left, dynamic minutes on right
+            HStack(spacing: 4) {
+                Image(systemName: "n.circle")
+                Text("\(timerVM.timeRemaining / 60)m")
+            }
+        }
+    }
+}
