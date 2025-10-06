@@ -14,7 +14,11 @@ struct NamidoroApp: App {
     var body: some Scene {
         MenuBarExtra(isInserted: .constant(true)) {
             // Popover content
-            WorkModeView(timerVM: timerVM)
+            if timerVM.mode == .work {
+                            WorkModeView(timerVM: timerVM)
+                        } else {
+                            BreakModeView(timerVM: timerVM)
+                        }
         } label: {
             // Label with icon on left, dynamic minutes on right
             HStack(spacing: 4) {

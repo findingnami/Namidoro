@@ -26,7 +26,9 @@ struct BreakModeView: View {
 
             Button("Start Work Mode") {
                 timerVM.stop()
-                print("Switch to work mode")
+                timerVM.mode = .work
+                timerVM.reset(to: 25 * 60) // 25-minute work
+                timerVM.start()
             }
 
             Button("Quit") {

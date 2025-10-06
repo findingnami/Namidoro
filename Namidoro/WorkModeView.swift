@@ -24,7 +24,9 @@ struct WorkModeView: View {
             // Start break placeholder
             Button("Start Break Now") {
                 timerVM.stop()
-                print("Switch to break mode") // implement later
+                timerVM.mode = .breakTime
+                timerVM.reset(to: 5 * 60) // 5-minute break
+                timerVM.start()
             }
 
             // Quit button

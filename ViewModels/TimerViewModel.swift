@@ -9,9 +9,15 @@ import SwiftUI
 import Combine
 
 class TimerViewModel: ObservableObject {
+    enum TimerMode {
+        case work
+        case breakTime
+    }
+    
     @Published var timeRemaining: Int
     @Published var isRunning: Bool = false
     @Published var menuBarTitle: String // dynamically updates menu bar
+    @Published var mode: TimerMode = .work
 
     private var timer: Timer?
 
@@ -56,3 +62,5 @@ class TimerViewModel: ObservableObject {
         return String(format: "%02d:%02d", minutes, seconds)
     }
 }
+
+
