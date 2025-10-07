@@ -6,11 +6,23 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 @main
 struct NamidoroApp: App {
     @StateObject private var timerVM = TimerViewModel(startTime: 2 * 60) // change to 25 * 60 once done testing
 
+    init() {
+            // 🔔 Ask for notification permission once
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+                if let error = error {
+                    print("Notification permission error: \(error)")
+                } else {
+                    print("Notification permission granted: \(granted)")
+                }
+            }
+        }
+    
     var body: some Scene {
         MenuBarExtra(isInserted: .constant(true)) {
             // Popover content
@@ -39,4 +51,6 @@ struct NamidoroApp: App {
                 .windowStyle(.hiddenTitleBar)
                 .windowResizability(.contentSize)
     }
+    
+    
 }

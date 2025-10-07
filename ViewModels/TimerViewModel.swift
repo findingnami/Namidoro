@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import UserNotifications
 
 class TimerViewModel: ObservableObject {
     enum TimerMode {
@@ -20,6 +21,7 @@ class TimerViewModel: ObservableObject {
     @Published var menuBarTitle: String // dynamically updates menu bar
     @Published var mode: TimerMode = .work
     @Published var showAlert: Bool = false
+    @Published var showBreakAlertPopover = false
 
     private var timer: Timer?
 
@@ -43,26 +45,24 @@ class TimerViewModel: ObservableObject {
                     
                     // 🔔 1 minute before break alert (only during work mode)
                     if self.mode == .work && self.timeRemaining == 60 {
-                        self.showAlert = true
                         self.playSound(named: "Alert")
-                        self.showSystemAlert(
-                            title: "Break Incoming",
-                            message: "1 minute left before your break!"
-                        )
+                        self.showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
                     }
                 } else if self.isRunning && self.timeRemaining == 0 {
                     // ⏰ Time’s up — automatically switch modes
                     self.stop()
                     
-                    if self.mode == .work {
-                        self.switchToBreakMode()
-                        self.playSound(named: "Mode")
-                        self.start() // auto-start break
-                    } else {
-                        self.switchToWorkMode()
-                        self.playSound(named: "Mode")
-                        self.start() // auto-start work
-                    }
+                    if self.mode == .work && self.timeRemaining == 0 {
+                                        DispatchQueue.main.async {
+                                            self.switchToBreakMode()
+                                            self.start()
+                                        }
+                                    } else if self.mode == .breakTime && self.timeRemaining == 0 {
+                                        DispatchQueue.main.async {
+                                            self.switchToWorkMode()
+                                            self.start()
+                                        }
+                                    }
                 }
             }
         }
@@ -124,6 +124,23 @@ class TimerViewModel: ObservableObject {
         alert.informativeText = message
         alert.alertStyle = .informational
         alert.runModal()
+    }
+    
+    func showMenuBarNotification(title: String, message: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = message
+        content.sound = .default
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Notification error: \(error.localizedDescription)")
+            } else {
+                print("Notification sent: \(title)")
+            }
+        }
     }
 }
 
