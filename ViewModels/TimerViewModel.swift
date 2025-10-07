@@ -10,6 +10,11 @@ import Combine
 import AVFoundation
 import UserNotifications
 
+extension Notification.Name {
+    static let didEnterBreakMode = Notification.Name("didEnterBreakMode")
+    static let didExitBreakMode  = Notification.Name("didExitBreakMode")
+}
+
 class TimerViewModel: ObservableObject {
     enum TimerMode {
         case work
@@ -94,6 +99,7 @@ class TimerViewModel: ObservableObject {
         timeRemaining = 2 * 60                    // 25 * 60 // 25 minutes
         isRunning = false
         playSound(named: "Mode")
+        NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
     }
 
     func switchToBreakMode() {
@@ -101,6 +107,7 @@ class TimerViewModel: ObservableObject {
         timeRemaining = 1 * 60                           // 5 * 60 // 5 minutes
         isRunning = false
         playSound(named: "Mode")
+        NotificationCenter.default.post(name: .didEnterBreakMode, object: nil)
     }
     
     private var audioPlayer: AVAudioPlayer?
