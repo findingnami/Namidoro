@@ -12,7 +12,7 @@ import AppKit
 @main
 struct NamidoroApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var timerVM = TimerViewModel(startTime: 25 * 60)
+    @StateObject private var timerVM = TimerViewModel(startTime: 2 * 60) // 25 * 60
 
     init() {
         // Link timerVM to AppDelegate

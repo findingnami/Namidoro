@@ -9,6 +9,7 @@ import SwiftUI
 
 struct WorkModeView: View {
     @ObservedObject var timerVM: TimerViewModel
+    @State private var showFullScreenBreak = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -25,8 +26,11 @@ struct WorkModeView: View {
             Button("Start Break Now") {
                 timerVM.stop()
                 timerVM.mode = .breakTime
-                timerVM.reset(to: 5 * 60) // 5-minute break
+                timerVM.reset(to: 1 * 60) // 5-minute break
                 timerVM.start()
+                
+                // Activate FullScreenBreakView
+                showFullScreenBreak = true
             }
 
             // Quit button
@@ -40,8 +44,23 @@ struct WorkModeView: View {
             timerVM.start() // automatically start when popover opens
         }
         .alert("1 minute left before break!", isPresented: $timerVM.showAlert) {
-                    Button("OK", role: .cancel) { timerVM.showAlert = false }
-                }
+            Button("OK", role: .cancel) { timerVM.showAlert = false }
+        }
+        
+        // Full-screen break overlay
+                    if showFullScreenBreak {
+                        FullScreenBreakView(timerVM: timerVM)
+                            .edgesIgnoringSafeArea(.all)
+                            .transition(.opacity)
+                            .onReceive(timerVM.$mode) { mode in
+                                // Hide full screen when back to work
+                                if mode == .work {
+                                    withAnimation {
+                                        showFullScreenBreak = false
+                                    }
+                                }
+                            }
+                    }
     }
 }
 
