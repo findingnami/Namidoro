@@ -61,7 +61,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.ignoresMouseEvents = false
 
-        let hostingView = NSHostingView(rootView: FullScreenBreakView(timerVM: timerVM))
+       // let hostingView = NSHostingView(rootView: FullScreenBreakView(timerVM: timerVM))
+        let rootView = FullScreenBreakView()
+            .environmentObject(timerVM) // ✅ attach the environment object here
+        let hostingView = NSHostingView(rootView: rootView)
+        hostingView.frame = screenFrame
+        window.contentView = hostingView
         hostingView.frame = screenFrame
         window.contentView = hostingView
 

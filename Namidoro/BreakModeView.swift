@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct BreakModeView: View {
-    @ObservedObject var timerVM: TimerViewModel   // share the same timer
+    @EnvironmentObject var timerVM: TimerViewModel   // share the same timer
 
     var timeDisplay: String {
         let minutes = timerVM.timeRemaining / 60
@@ -43,6 +43,6 @@ struct BreakModeView: View {
 }
 
 #Preview(traits: .sizeThatFitsLayout) {
-    BreakModeView(timerVM: TimerViewModel(startTime: 5 * 60))
+    BreakModeView()
         .padding()
 }

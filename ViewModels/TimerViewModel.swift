@@ -40,7 +40,7 @@ class TimerViewModel: ObservableObject {
     }
 
     // MARK: - Timer Control
-    func start() {
+   /* func start() {
         guard !isRunning else { return }
         isRunning = true
         timer?.invalidate()
@@ -74,6 +74,44 @@ class TimerViewModel: ObservableObject {
                 }
             }
         }
+    } */
+    
+    func start() {
+        // if already running, do nothing
+        if isRunning { return }
+        isRunning = true
+        timer?.invalidate()
+
+        // Create a Timer and add it to the main RunLoop in .common mode so UI updates while menus/popovers are open
+        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            // do updates on main thread just in case
+            DispatchQueue.main.async {
+                guard self.isRunning else { return }
+                if self.timeRemaining > 0 {
+                    self.timeRemaining -= 1
+                    self.menuBarTitle = "\(self.timeRemaining / 60)m"
+
+                    if self.mode == .work && self.timeRemaining == 60 {
+                        self.playSound(named: "Alert")
+                        self.showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
+                    }
+                } else {
+                    // time up -> switch modes
+                    self.stop()
+                    if self.mode == .work {
+                        self.switchToBreakMode()
+                        self.start()
+                    } else {
+                        self.switchToWorkMode()
+                        self.start()
+                    }
+                }
+            }
+        }
+
+        self.timer = t
+        RunLoop.main.add(t, forMode: .common)
     }
 
     func pause() { isRunning = false }
@@ -105,14 +143,6 @@ class TimerViewModel: ObservableObject {
         playSound(named: "Mode")
         NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
     }
-
-    /*func switchToBreakMode() {
-        mode = .breakTime
-        timeRemaining = 1 * 60       // 5 * 60
-        isRunning = false
-        playSound(named: "Mode")
-        NotificationCenter.default.post(name: .didEnterBreakMode, object: nil)
-    } */
     
     func switchToBreakMode() {
         mode = .breakTime

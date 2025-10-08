@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct FullScreenBreakView: View {
-    @ObservedObject var timerVM: TimerViewModel
+    @EnvironmentObject var timerVM: TimerViewModel
     @State private var currentTime = Date()
     @State private var isVisible = false // fade animation
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -75,5 +75,5 @@ struct FullScreenBreakView: View {
 #Preview {
     let sampleTimer = TimerViewModel(startTime: 5 * 60)
     sampleTimer.mode = .breakTime
-    return FullScreenBreakView(timerVM: sampleTimer)
+    return FullScreenBreakView()
 }
