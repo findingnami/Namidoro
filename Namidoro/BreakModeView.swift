@@ -13,7 +13,7 @@ struct BreakModeView: View {
     var timeDisplay: String {
         let minutes = timerVM.timeRemaining / 60
         let seconds = timerVM.timeRemaining % 60
-        return String(format: "%02d:%02d before work", minutes, seconds)
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     var body: some View {

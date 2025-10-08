@@ -96,7 +96,7 @@ class TimerViewModel: ObservableObject {
     
     func switchToWorkMode() {
         mode = .work
-        timeRemaining = 2 * 60                    // 25 * 60 // 25 minutes
+        timeRemaining = 25 * 60                    // 25 * 60 // 25 minutes
         isRunning = false
         playSound(named: "Mode")
         NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
@@ -104,7 +104,7 @@ class TimerViewModel: ObservableObject {
 
     func switchToBreakMode() {
         mode = .breakTime
-        timeRemaining = 1 * 60                           // 5 * 60 // 5 minutes
+        timeRemaining = 5 * 60                           // 5 * 60 // 5 minutes
         isRunning = false
         playSound(named: "Mode")
         NotificationCenter.default.post(name: .didEnterBreakMode, object: nil)
