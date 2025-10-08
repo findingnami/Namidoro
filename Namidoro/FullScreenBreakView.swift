@@ -42,6 +42,8 @@ struct FullScreenBreakView: View {
                         // switch back to work mode - this will also trigger notifications
                         timerVM.stop()
                         timerVM.switchToWorkMode()
+                        timerVM.reset(to: 2 * 60) // 25 * 60
+                        timerVM.start()
                     }
                 }
                 .buttonStyle(.borderedProminent)

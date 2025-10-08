@@ -40,42 +40,6 @@ class TimerViewModel: ObservableObject {
     }
 
     // MARK: - Timer Control
-   /* func start() {
-        guard !isRunning else { return }
-        isRunning = true
-        timer?.invalidate()
-        
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            DispatchQueue.main.async {
-                if self.isRunning && self.timeRemaining > 0 {
-                    self.timeRemaining -= 1
-                    self.menuBarTitle = "\(self.timeRemaining / 60)m"
-                    
-                    // 🔔 1 minute before break alert (only during work mode)
-                    if self.mode == .work && self.timeRemaining == 60 {
-                        self.playSound(named: "Alert")
-                        self.showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
-                    }
-                } else if self.isRunning && self.timeRemaining == 0 {
-                    // ⏰ Time’s up — automatically switch modes
-                    self.stop()
-                    
-                    if self.mode == .work {
-                        DispatchQueue.main.async {
-                            self.switchToBreakMode()
-                            self.start()
-                        }
-                    } else if self.mode == .breakTime {
-                        DispatchQueue.main.async {
-                            self.switchToWorkMode()
-                            self.start()
-                        }
-                    }
-                }
-            }
-        }
-    } */
-    
     func start() {
         // if already running, do nothing
         if isRunning { return }
