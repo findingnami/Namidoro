@@ -15,7 +15,7 @@ struct MenuContentView: View {
             if timerVM.mode == .work {
                 WorkModeView()
             } else {
-                BreakModeView()
+                FullScreenBreakView()
             }
         }
         .frame(width: 200)

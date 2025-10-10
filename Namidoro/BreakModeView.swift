@@ -5,7 +5,7 @@
 //  Created by Maria Rachel on 10/1/25.
 //
 
-import SwiftUI
+/* import SwiftUI
 
 struct BreakModeView: View {
     @EnvironmentObject var timerVM: TimerViewModel   // share the same timer
@@ -27,7 +27,7 @@ struct BreakModeView: View {
             Button("Start Work Mode") {
                 timerVM.stop()
                 timerVM.mode = .work
-                timerVM.reset(to: 2 * 60) // 25 * 60
+                timerVM.reset(to: 25 * 60) // 25 * 60
                 timerVM.start()
             }
 
@@ -46,3 +46,4 @@ struct BreakModeView: View {
     BreakModeView()
         .padding()
 }
+*/

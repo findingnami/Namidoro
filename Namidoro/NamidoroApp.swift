@@ -12,7 +12,7 @@ import AppKit
 @main
 struct NamidoroApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var timerVM = TimerViewModel(startTime: 2 * 60) // testing value
+    @StateObject private var timerVM = TimerViewModel(startTime: 2 * 60) // 25 * 60
 
     init() {
         // give AppDelegate the VM immediately so overlay creation never sees nil
