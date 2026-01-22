@@ -1,4 +1,4 @@
-*Namidoro*
+**Namidoro**
 
 Namidoro is a simple macOS Pomodoro timer, currently a work in progress, designed to keep you focused without distractions. It sits conveniently in your menu bar and reminds you to take breaks with a full-screen break view after every 25-minute session.
 
