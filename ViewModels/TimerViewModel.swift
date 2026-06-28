@@ -36,7 +36,6 @@ class TimerViewModel: ObservableObject {
         self.timeRemaining = startTime
         self.menuBarTitle = "\(startTime / 60)m"
         self.start()
-        setupBreakExitObserver() // 👈 observer added here
     }
 
     // MARK: - Timer Control
@@ -49,27 +48,24 @@ class TimerViewModel: ObservableObject {
         // Create a Timer and add it to the main RunLoop in .common mode so UI updates while menus/popovers are open
         let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            // do updates on main thread just in case
-            DispatchQueue.main.async {
-                guard self.isRunning else { return }
-                if self.timeRemaining > 0 {
-                    self.timeRemaining -= 1
-                    self.menuBarTitle = "\(self.timeRemaining / 60)m"
+            guard self.isRunning else { return }
+            if self.timeRemaining > 0 {
+                self.timeRemaining -= 1
+                self.menuBarTitle = "\(self.timeRemaining / 60)m"
 
-                    if self.mode == .work && self.timeRemaining == 60 {
-                        self.playSound(named: "Alert")
-                        self.showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
-                    }
+                if self.mode == .work && self.timeRemaining == 60 {
+                    self.playSound(named: "Alert")
+                    self.showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
+                }
+            } else {
+                // time up -> switch modes
+                self.stop()
+                if self.mode == .work {
+                    self.switchToBreakMode()
+                    self.start()
                 } else {
-                    // time up -> switch modes
-                    self.stop()
-                    if self.mode == .work {
-                        self.switchToBreakMode()
-                        self.start()
-                    } else {
-                        self.switchToWorkMode()
-                        self.start()
-                    }
+                    self.switchToWorkMode()
+                    self.start()
                 }
             }
         }
@@ -101,25 +97,27 @@ class TimerViewModel: ObservableObject {
     
     // MARK: - Mode Switching
     func switchToWorkMode() {
+        stop()  // Ensure timer is fully stopped first
         mode = .work
         timeRemaining = 2 * 60       // 25 * 60
+        menuBarTitle = "\(timeRemaining / 60)m"
         isRunning = false
         playSound(named: "Mode")
         NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
     }
     
     func switchToBreakMode() {
+        stop()  // Ensure timer is fully stopped first
         mode = .breakTime
         timeRemaining = 1 * 60       // 5 * 60
+        menuBarTitle = "\(timeRemaining / 60)m"
         isRunning = false
 
         // ✅ Ensure sound plays
         playSound(named: "Mode")
 
-        // ✅ Post notification to trigger AppDelegate overlay
-        NotificationCenter.default.post(name: .didEnterBreakMode, object: nil)
-
-        print("🟢 Entered Break Mode — Overlay triggered, sound played.")
+        // ✅ Post notification to trigger AppDelegate overlay, passing self as the object
+        NotificationCenter.default.post(name: .didEnterBreakMode, object: self)
     }
     
     // MARK: - Sounds
@@ -160,29 +158,6 @@ class TimerViewModel: ObservableObject {
                 print("Notification sent: \(title)")
             }
         }
-    }
-    
-    // MARK: - Observer for Break Exit
-    private func setupBreakExitObserver() {
-        NotificationCenter.default.addObserver(
-            forName: .didExitBreakMode,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            // ask overlay to fade out
-            NotificationCenter.default.post(name: .fadeOutBreakOverlay, object: nil)
-            
-            // wait for fade-out animation before closing
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
-                self?.hideFullScreenOverlay()
-            }
-        }
-    }
-
-    private func hideFullScreenOverlay() {
-        // Add logic to hide or close your fullscreen NSWindow here.
-        // If you manage your overlay elsewhere, you can leave this empty.
-        print("🟣 Hiding fullscreen overlay after fade-out.")
     }
 }
 

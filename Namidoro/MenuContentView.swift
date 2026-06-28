@@ -15,7 +15,20 @@ struct MenuContentView: View {
             if timerVM.mode == .work {
                 WorkModeView()
             } else {
-                FullScreenBreakView()
+                // Inline break popover — NOT FullScreenBreakView
+                VStack(spacing: 10) {
+                    Text("Break")
+                        .font(.headline)
+                    Text(timerVM.timeDisplay)
+                        .font(.title)
+                    Button("Skip Break") {
+                        timerVM.stop()
+                        timerVM.switchToWorkMode()
+                        timerVM.start()
+                    }
+                }
+                .frame(width: 200)
+                .padding()
             }
         }
         .frame(width: 200)

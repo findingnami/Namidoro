@@ -23,12 +23,12 @@ struct WorkModeView: View {
 
             // ✅ Start break button — now triggers overlay + sound
             Button("Start Break Now") {
-                timerVM.stop()
                 timerVM.switchToBreakMode() // This will now:
+                                            // - stop the timer
                                             // - play sound
                                             // - send didEnterBreakMode notification
 
-                // Optional: restart timer after switching
+                // Start timer after switching to break mode
                 timerVM.start()
             }
 
@@ -39,12 +39,27 @@ struct WorkModeView: View {
         }
         .frame(width: 200)
         .padding()
-        .onAppear {
-            timerVM.start()
-        }
         .alert("1 minute left before break!", isPresented: $timerVM.showAlert) {
             Button("OK", role: .cancel) { timerVM.showAlert = false }
         }
+    }
+}
+
+struct MenuButton: View {
+    let title: String
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background(isHovered ? Color.accentColor.opacity(0.15) : Color.clear)
+                .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 

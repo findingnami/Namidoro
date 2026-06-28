@@ -27,8 +27,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             forName: .didEnterBreakMode,
             object: nil,
             queue: .main
-        ) { _ in
-            AppDelegate.shared?.showBreakOverlay()
+        ) { notification in
+            // Get timerVM from the notification object
+            if let timerVM = notification.object as? TimerViewModel {
+                AppDelegate.shared?.showBreakOverlay(with: timerVM)
+            }
         }
 
         NotificationCenter.default.addObserver(
@@ -42,10 +45,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Overlay Management
 
-    func showBreakOverlay() {
+    func showBreakOverlay(with timerVM: TimerViewModel) {
         guard overlayWindow == nil,
-              let screenFrame = NSScreen.main?.frame,
-              let timerVM = timerVM else { return }
+              let screenFrame = NSScreen.main?.frame else { return }
 
         let window = NSWindow(
             contentRect: screenFrame,
@@ -82,6 +84,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func hideBreakOverlay() {
         guard let window = overlayWindow else { return }
+
+        // Signal the SwiftUI view to fade its content out
+        NotificationCenter.default.post(name: .fadeOutBreakOverlay, object: nil)
 
         // ✅ Fade out animation before closing
         NSAnimationContext.runAnimationGroup({ context in

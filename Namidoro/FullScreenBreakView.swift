@@ -34,16 +34,11 @@ struct FullScreenBreakView: View {
                     .monospacedDigit()
 
                 Button("Skip Break") {
-                    // local fade + then tell VM to switch
+                    timerVM.switchToWorkMode()   // resets time + posts .didExitBreakMode
+                    timerVM.start()
+
                     withAnimation(.easeOut(duration: Self.animationDuration)) {
                         isVisible = false
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + Self.animationDuration) {
-                        // switch back to work mode - this will also trigger notifications
-                        timerVM.stop()
-                        timerVM.switchToWorkMode()
-                        timerVM.reset(to: 2 * 60) // 25 * 60
-                        timerVM.start()
                     }
                 }
                 .buttonStyle(.borderedProminent)
