@@ -99,7 +99,7 @@ class TimerViewModel: ObservableObject {
     func switchToWorkMode() {
         stop()  // Ensure timer is fully stopped first
         mode = .work
-        timeRemaining = 2 * 60       // 25 * 60
+        timeRemaining = 25 * 60       // 25 * 60
         menuBarTitle = "\(timeRemaining / 60)m"
         isRunning = false
         playSound(named: "Mode")
@@ -109,7 +109,7 @@ class TimerViewModel: ObservableObject {
     func switchToBreakMode() {
         stop()  // Ensure timer is fully stopped first
         mode = .breakTime
-        timeRemaining = 1 * 60       // 5 * 60
+        timeRemaining = 5 * 60       // 5 * 60
         menuBarTitle = "\(timeRemaining / 60)m"
         isRunning = false
 
