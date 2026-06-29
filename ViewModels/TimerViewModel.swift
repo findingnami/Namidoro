@@ -28,6 +28,7 @@ class TimerViewModel: ObservableObject {
 
     private var timer: Timer?
     private var audioPlayer: AVAudioPlayer?
+    private var hasTriggeredOneMinuteWarning: Bool = false
 
     init(startTime: Int) {
         self.timeRemaining = startTime
@@ -59,7 +60,9 @@ class TimerViewModel: ObservableObject {
             if self.timeRemaining > 0 {
                 self.timeRemaining -= 1
 
-                if self.mode == .work && self.timeRemaining == 60 {
+                // Only trigger the 1-minute warning if we're still in work mode and haven't already triggered it
+                if self.mode == .work && self.timeRemaining == 60 && !self.hasTriggeredOneMinuteWarning {
+                    self.hasTriggeredOneMinuteWarning = true
                     self.playSound(named: "Alert")
                     self.showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
                 }
@@ -96,6 +99,7 @@ class TimerViewModel: ObservableObject {
         stop()
         mode = .work
         timeRemaining = 2 * 60       // 25 * 60
+        hasTriggeredOneMinuteWarning = false  // Reset the flag for the new work session
         playSound(named: "Mode")
         NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
         start()
@@ -142,4 +146,3 @@ class TimerViewModel: ObservableObject {
         }
     }
 }
-
