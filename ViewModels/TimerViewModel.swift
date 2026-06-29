@@ -62,10 +62,8 @@ class TimerViewModel: ObservableObject {
                 self.stop()
                 if self.mode == .work {
                     self.switchToBreakMode()
-                    self.start()
                 } else {
                     self.switchToWorkMode()
-                    self.start()
                 }
             }
         }
@@ -98,26 +96,37 @@ class TimerViewModel: ObservableObject {
     // MARK: - Mode Switching
     func switchToWorkMode() {
         stop()  // Ensure timer is fully stopped first
-        mode = .work
-        timeRemaining = 2 * 60       // 25 * 60
-        menuBarTitle = "\(timeRemaining / 60)m"
-        playSound(named: "Mode")
-        NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
-        start()  // Start the work timer
+        
+        // Update properties on main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.mode = .work
+            self.timeRemaining = 2 * 60       // 25 * 60
+            self.menuBarTitle = "\(self.timeRemaining / 60)m"
+            
+            self.playSound(named: "Mode")
+            NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
+            self.start()  // Start the work timer
+        }
     }
     
     func switchToBreakMode() {
         stop()  // Ensure timer is fully stopped first
-        mode = .breakTime
-        timeRemaining = 1 * 60       // 5 * 60
-        menuBarTitle = "\(timeRemaining / 60)m"
+        
+        // Update properties on main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.mode = .breakTime
+            self.timeRemaining = 1 * 60       // 5 * 60
+            self.menuBarTitle = "\(self.timeRemaining / 60)m"
 
-        // ✅ Ensure sound plays
-        playSound(named: "Mode")
+            // ✅ Ensure sound plays
+            self.playSound(named: "Mode")
 
-        // ✅ Post notification to trigger AppDelegate overlay, passing self as the object
-        NotificationCenter.default.post(name: .didEnterBreakMode, object: self)
-        start()  // Start the break timer
+            // ✅ Post notification to trigger AppDelegate overlay, passing self as the object
+            NotificationCenter.default.post(name: .didEnterBreakMode, object: self)
+            self.start()  // Start the break timer
+        }
     }
     
     // MARK: - Sounds
