@@ -27,9 +27,7 @@ struct WorkModeView: View {
                                             // - stop the timer
                                             // - play sound
                                             // - send didEnterBreakMode notification
-
-                // Start timer after switching to break mode
-                timerVM.start()
+                                            // - start the break timer
             }
 
             // Quit button

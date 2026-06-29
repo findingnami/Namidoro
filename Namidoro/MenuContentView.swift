@@ -22,9 +22,7 @@ struct MenuContentView: View {
                     Text(timerVM.timeDisplay)
                         .font(.title)
                     Button("Skip Break") {
-                        timerVM.stop()
                         timerVM.switchToWorkMode()
-                        timerVM.start()
                     }
                 }
                 .frame(width: 200)

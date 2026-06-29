@@ -7,8 +7,9 @@
 
 import Cocoa
 import SwiftUI
+import UserNotifications
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     static var shared: AppDelegate? = nil
     var overlayWindow: NSWindow?
     var timerVM: TimerViewModel?
@@ -19,7 +20,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Set notification delegate to show notifications even when app is active
+        UNUserNotificationCenter.current().delegate = self
         setupObservers()
+    }
+    
+    // MARK: - UNUserNotificationCenterDelegate
+    func userNotificationCenter(_ center: UNUserNotificationCenter, 
+                                willPresent notification: UNNotification, 
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound])
     }
 
     private func setupObservers() {
