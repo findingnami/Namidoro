@@ -63,7 +63,6 @@ class TimerViewModel: ObservableObject {
                 }
             } else {
                 // time up -> switch modes
-                self.stop()
                 if self.mode == .work {
                     self.switchToBreakMode()
                 } else {
