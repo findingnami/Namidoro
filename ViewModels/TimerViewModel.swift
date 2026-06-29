@@ -101,9 +101,9 @@ class TimerViewModel: ObservableObject {
         mode = .work
         timeRemaining = 2 * 60       // 25 * 60
         menuBarTitle = "\(timeRemaining / 60)m"
-        isRunning = false
         playSound(named: "Mode")
         NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
+        start()  // Start the work timer
     }
     
     func switchToBreakMode() {
@@ -111,13 +111,13 @@ class TimerViewModel: ObservableObject {
         mode = .breakTime
         timeRemaining = 1 * 60       // 5 * 60
         menuBarTitle = "\(timeRemaining / 60)m"
-        isRunning = false
 
         // ✅ Ensure sound plays
         playSound(named: "Mode")
 
         // ✅ Post notification to trigger AppDelegate overlay, passing self as the object
         NotificationCenter.default.post(name: .didEnterBreakMode, object: self)
+        start()  // Start the break timer
     }
     
     // MARK: - Sounds
@@ -147,7 +147,7 @@ class TimerViewModel: ObservableObject {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = message
-        content.sound = .default
+        content.sound = nil  // Don't play sound here, we handle it separately with playSound()
 
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
 
