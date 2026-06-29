@@ -10,19 +10,12 @@ import SwiftUI
 struct FullScreenBreakView: View {
     @EnvironmentObject var timerVM: TimerViewModel
     @State private var currentTime = Date()
-    @State private var isVisible = false // fade animation
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    // match this duration in AppDelegate when hiding the window
-    static let animationDuration: TimeInterval = 0.5
 
     var body: some View {
         ZStack {
-            // background blur + content always present so opacity animation works reliably
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
                 .ignoresSafeArea()
-                .opacity(isVisible ? 1 : 0)
-                .animation(.easeInOut(duration: Self.animationDuration), value: isVisible)
 
             VStack(spacing: 20) {
                 Text("Take a pause for a few minutes.")
@@ -34,11 +27,7 @@ struct FullScreenBreakView: View {
                     .monospacedDigit()
 
                 Button("Skip Break") {
-                    timerVM.switchToWorkMode()   // resets time + posts .didExitBreakMode + starts timer
-
-                    withAnimation(.easeOut(duration: Self.animationDuration)) {
-                        isVisible = false
-                    }
+                    timerVM.switchToWorkMode()
                 }
                 .buttonStyle(.borderedProminent)
                 .font(.title3)
@@ -50,20 +39,6 @@ struct FullScreenBreakView: View {
                     .onReceive(timer) { time in currentTime = time }
             }
             .padding()
-            .opacity(isVisible ? 1 : 0)
-            .animation(.easeInOut(duration: Self.animationDuration), value: isVisible)
-        }
-        .onAppear {
-            // fade in
-            withAnimation(.easeIn(duration: Self.animationDuration)) {
-                isVisible = true
-            }
-        }
-        // Listen for AppDelegate asking overlay to fade out
-        .onReceive(NotificationCenter.default.publisher(for: .fadeOutBreakOverlay)) { _ in
-            withAnimation(.easeOut(duration: Self.animationDuration)) {
-                isVisible = false
-            }
         }
     }
 }
@@ -72,4 +47,5 @@ struct FullScreenBreakView: View {
     let sampleTimer = TimerViewModel(startTime: 5 * 60)
     sampleTimer.mode = .breakTime
     return FullScreenBreakView()
+        .environmentObject(sampleTimer)
 }

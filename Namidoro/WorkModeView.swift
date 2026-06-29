@@ -12,61 +12,28 @@ struct WorkModeView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            // Show full countdown in mm:ss
             Text(timerVM.timeDisplay)
                 .font(.title)
 
-            // Start / Pause toggle
             Button(timerVM.isRunning ? "Pause" : "Start") {
                 timerVM.isRunning ? timerVM.pause() : timerVM.start()
             }
 
-            // ✅ Start break button — now triggers overlay + sound
             Button("Start Break Now") {
-                timerVM.switchToBreakMode() // This will now:
-                                            // - stop the timer
-                                            // - play sound
-                                            // - send didEnterBreakMode notification
-                                            // - start the break timer
+                timerVM.switchToBreakMode()
             }
 
-            // Quit button
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
         }
         .frame(width: 200)
         .padding()
-        .alert("1 minute left before break!", isPresented: $timerVM.showAlert) {
-            Button("OK", role: .cancel) { timerVM.showAlert = false }
-        }
-    }
-}
-
-struct MenuButton: View {
-    let title: String
-    let action: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 5)
-                .background(isHovered ? Color.accentColor.opacity(0.15) : Color.clear)
-                .cornerRadius(6)
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-    }
-}
-
-struct WorkModeView_Previews: PreviewProvider {
-    static var previews: some View {
-        WorkModeView()
     }
 }
 
 #Preview {
-    WorkModeView()
+    let sampleTimer = TimerViewModel(startTime: 25 * 60)
+    return WorkModeView()
+        .environmentObject(sampleTimer)
 }

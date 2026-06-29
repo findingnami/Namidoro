@@ -1,5 +1,5 @@
 //
-//  AppleDelegate.swift
+//  AppDelegate.swift
 //  Namidoro
 //
 //  Created by Maria Rachel on 10/7/25.
@@ -74,19 +74,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.ignoresMouseEvents = false
 
-       // let hostingView = NSHostingView(rootView: FullScreenBreakView(timerVM: timerVM))
         let rootView = FullScreenBreakView()
-            .environmentObject(timerVM) // ✅ attach the environment object here
+            .environmentObject(timerVM)
         let hostingView = NSHostingView(rootView: rootView)
-        hostingView.frame = screenFrame
-        window.contentView = hostingView
         hostingView.frame = screenFrame
         window.contentView = hostingView
 
         window.makeKeyAndOrderFront(nil)
         overlayWindow = window
 
-        // ✅ Fade in animation
+        // Fade in animation
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.5
             window.animator().alphaValue = 1.0
@@ -96,10 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     func hideBreakOverlay() {
         guard let window = overlayWindow else { return }
 
-        // Signal the SwiftUI view to fade its content out
-        NotificationCenter.default.post(name: .fadeOutBreakOverlay, object: nil)
-
-        // ✅ Fade out animation before closing
+        // Fade out animation before closing
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.5
             window.animator().alphaValue = 0

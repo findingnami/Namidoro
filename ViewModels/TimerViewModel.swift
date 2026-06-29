@@ -13,7 +13,6 @@ import AppKit
 extension Notification.Name {
     static let didEnterBreakMode = Notification.Name("didEnterBreakMode")
     static let didExitBreakMode  = Notification.Name("didExitBreakMode")
-    static let fadeOutBreakOverlay = Notification.Name("fadeOutBreakOverlay")
 }
 
 class TimerViewModel: ObservableObject {
@@ -24,18 +23,22 @@ class TimerViewModel: ObservableObject {
     
     @Published var timeRemaining: Int
     @Published var isRunning: Bool = false
-    @Published var menuBarTitle: String // dynamically updates menu bar
     @Published var mode: TimerMode = .work
     @Published var showAlert: Bool = false
-    @Published var showBreakAlertPopover = false
 
     private var timer: Timer?
     private var audioPlayer: AVAudioPlayer?
 
     init(startTime: Int) {
         self.timeRemaining = startTime
-        self.menuBarTitle = "\(startTime / 60)m"
         self.start()
+    }
+
+    // MARK: - Display Helpers
+    var timeDisplay: String {
+        let minutes = timeRemaining / 60
+        let seconds = timeRemaining % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     // MARK: - Timer Control
@@ -55,7 +58,6 @@ class TimerViewModel: ObservableObject {
             guard self.isRunning else { return }
             if self.timeRemaining > 0 {
                 self.timeRemaining -= 1
-                self.menuBarTitle = "\(self.timeRemaining / 60)m"
 
                 if self.mode == .work && self.timeRemaining == 60 {
                     self.playSound(named: "Alert")
@@ -76,12 +78,11 @@ class TimerViewModel: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
     }
 
-    func pause() { isRunning = false }
-
-    func reset(to seconds: Int) {
+    func pause() {
         isRunning = false
-        timeRemaining = seconds
-        menuBarTitle = "\(seconds / 60)m"
+        timer?.invalidate()
+        timer = nil
+        // timeRemaining is preserved
     }
 
     func stop() {
@@ -89,43 +90,24 @@ class TimerViewModel: ObservableObject {
         timer?.invalidate()
         timer = nil
     }
-
-    // MARK: - Display Helpers
-    var timeDisplay: String {
-        let minutes = timeRemaining / 60
-        let seconds = timeRemaining % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
     
     // MARK: - Mode Switching
     func switchToWorkMode() {
-        stop()  // Ensure timer is fully stopped first
-        
-        // Force all updates on main thread
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.mode = .work
-            self.timeRemaining = 2 * 60       // 25 * 60
-            self.menuBarTitle = "\(self.timeRemaining / 60)m"
-            self.playSound(named: "Mode")
-            NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
-            self.start()  // Start the work timer
-        }
+        stop()
+        mode = .work
+        timeRemaining = 2 * 60       // 25 * 60
+        playSound(named: "Mode")
+        NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
+        start()
     }
     
     func switchToBreakMode() {
-        stop()  // Ensure timer is fully stopped first
-        
-        // Force all updates on main thread
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.mode = .breakTime
-            self.timeRemaining = 1 * 60       // 5 * 60
-            self.menuBarTitle = "\(self.timeRemaining / 60)m"
-            self.playSound(named: "Mode")
-            NotificationCenter.default.post(name: .didEnterBreakMode, object: self)
-            self.start()  // Start the break timer
-        }
+        stop()
+        mode = .breakTime
+        timeRemaining = 1 * 60       // 5 * 60
+        playSound(named: "Mode")
+        NotificationCenter.default.post(name: .didEnterBreakMode, object: self)
+        start()
     }
     
     // MARK: - Sounds
@@ -143,14 +125,6 @@ class TimerViewModel: ObservableObject {
     }
     
     // MARK: - Notifications
-    func showSystemAlert(title: String, message: String) {
-        let alert = NSAlert()
-        alert.messageText = title
-        alert.informativeText = message
-        alert.alertStyle = .informational
-        alert.runModal()
-    }
-    
     func showMenuBarNotification(title: String, message: String) {
         let content = UNMutableNotificationContent()
         content.title = title
