@@ -34,8 +34,7 @@ struct FullScreenBreakView: View {
                     .monospacedDigit()
 
                 Button("Skip Break") {
-                    timerVM.switchToWorkMode()   // resets time + posts .didExitBreakMode
-                    timerVM.start()
+                    timerVM.switchToWorkMode()   // resets time + posts .didExitBreakMode + starts timer
 
                     withAnimation(.easeOut(duration: Self.animationDuration)) {
                         isVisible = false

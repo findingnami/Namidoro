@@ -101,9 +101,9 @@ class TimerViewModel: ObservableObject {
         mode = .work
         timeRemaining = 25 * 60       // 25 * 60
         menuBarTitle = "\(timeRemaining / 60)m"
-        isRunning = false
         playSound(named: "Mode")
         NotificationCenter.default.post(name: .didExitBreakMode, object: nil)
+        start()  // Start the work timer
     }
     
     func switchToBreakMode() {
