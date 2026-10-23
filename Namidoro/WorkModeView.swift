@@ -41,7 +41,12 @@ struct WorkModeView: View {
                         showingSettings = true
                     }
 
-                    MenuRow(title: "Quit", systemImage: "power", tint: .secondary) {
+                    // Color.secondary (as a Color, not the hierarchical ShapeStyle) resolves to
+                    // NSColor.secondaryLabelColor, which bakes in reduced alpha over labelColor
+                    // by system design — that's what read as "greyed out/disabled" at rest.
+                    // Color.gray is a fixed, fully-opaque tone: still visually distinct from the
+                    // other rows' default .primary tint, without the built-in transparency.
+                    MenuRow(title: "Quit", systemImage: "power", tint: .gray) {
                         NSApplication.shared.terminate(nil)
                     }
                 }

@@ -52,6 +52,12 @@ struct TaskRowView: View {
         taskStore.selectedTaskID == task.id
     }
 
+    // .contentShape lives HERE, on the label itself (after its own frame), rather than
+    // chained onto the Button from outside. A shape filled with Color.clear has no
+    // renderable pixels for hit-testing to lock onto, so without an explicit shape tied
+    // directly to the label's own frame, only the ~1.5pt stroke ring was reliably
+    // clickable — a tap anywhere else in the 18x18 box fell through to the row's tap
+    // gesture underneath instead of reaching the Button.
     private var checkboxView: some View {
         RoundedRectangle(cornerRadius: 5)
             .fill(task.isDone ? Color.accentColor : Color.clear)
@@ -67,6 +73,8 @@ struct TaskRowView: View {
                     .opacity(task.isDone ? 1 : 0)
             )
             .animation(.easeInOut(duration: 0.15), value: task.isDone)
+            .frame(width: Self.checkboxTapSize, height: Self.checkboxTapSize)
+            .contentShape(Rectangle())
     }
 
     var body: some View {
@@ -79,9 +87,9 @@ struct TaskRowView: View {
                 checkboxView
             }
             .buttonStyle(.plain)
-            .frame(width: Self.checkboxTapSize, height: Self.checkboxTapSize)
-            .contentShape(Rectangle())
 
+            // Select lives on the title only (not the whole row) so a tap on the checkbox
+            // can never also select the task underneath it.
             Text(task.title)
                 .strikethrough(task.isDone)
                 .fontWeight(isSelected ? .semibold : .regular)
@@ -89,6 +97,11 @@ struct TaskRowView: View {
                 .opacity(task.isDone ? 0.6 : 1.0)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    guard !task.isDone else { return }
+                    taskStore.select(task)
+                }
 
             if isHovering {
                 Button {
@@ -117,10 +130,6 @@ struct TaskRowView: View {
         .animation(.easeInOut(duration: 0.15), value: isSelected)
         .onHover { hovering in
             isHovering = hovering
-        }
-        .onTapGesture {
-            guard !task.isDone else { return }
-            taskStore.select(task)
         }
         .background(
             GeometryReader { proxy in
