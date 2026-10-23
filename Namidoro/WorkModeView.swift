@@ -17,18 +17,20 @@ struct WorkModeView: View {
 
             TaskListView()
 
-            MenuRow(title: timerVM.isRunning ? "Pause" : "Start") {
-                timerVM.isRunning ? timerVM.pause() : timerVM.start()
-                AppDelegate.closeMenuBarExtraPopover()
-            }
+            VStack(spacing: 2) {
+                MenuRow(title: timerVM.isRunning ? "Pause" : "Start", systemImage: timerVM.isRunning ? "pause.fill" : "play.fill") {
+                    timerVM.isRunning ? timerVM.pause() : timerVM.start()
+                    AppDelegate.closeMenuBarExtraPopover()
+                }
 
-            MenuRow(title: "Start Break Now") {
-                timerVM.switchToBreakMode()
-                AppDelegate.closeMenuBarExtraPopover()
-            }
+                MenuRow(title: "Start Break Now", systemImage: "cup.and.saucer") {
+                    timerVM.switchToBreakMode()
+                    AppDelegate.closeMenuBarExtraPopover()
+                }
 
-            MenuRow(title: "Quit") {
-                NSApplication.shared.terminate(nil)
+                MenuRow(title: "Quit", systemImage: "power", tint: .secondary) {
+                    NSApplication.shared.terminate(nil)
+                }
             }
         }
         .frame(width: 240)

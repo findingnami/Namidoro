@@ -14,22 +14,33 @@ import SwiftUI
 // in NamidoroApp.swift, which keeps this as a normal SwiftUI view instead.
 struct MenuRow: View {
     let title: String
+    var systemImage: String? = nil
+    var tint: Color = .primary
     let action: () -> Void
 
     @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .contentShape(Rectangle())
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(isHovering ? Color.accentColor.opacity(0.85) : Color.clear)
-                )
-                .foregroundStyle(isHovering ? Color.white : Color.primary)
+            HStack(spacing: 8) {
+                Group {
+                    if let systemImage {
+                        Image(systemName: systemImage)
+                    }
+                }
+                .frame(width: 16, alignment: .center)
+
+                Text(title)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isHovering ? Color.accentColor.opacity(0.85) : Color.clear)
+            )
+            .foregroundStyle(isHovering ? Color.white : tint)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
