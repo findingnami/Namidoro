@@ -73,6 +73,12 @@ struct TaskListView: View {
     @EnvironmentObject var taskStore: TaskStore
     @State private var newTaskTitle = ""
 
+    // A .window-style MenuBarExtra popover sizes itself to fit its content, and ScrollView
+    // has no intrinsic height of its own — a bare .frame(maxHeight:) with no floor lets it
+    // collapse to zero. Deriving an explicit height from the row count (capped at ~150pt)
+    // sidesteps that instead of relying on the ScrollView's own size negotiation.
+    private let rowHeight: CGFloat = 26
+
     private var openTasks: [TaskItem] {
         taskStore.tasks.filter { !$0.isDone }
     }
@@ -94,7 +100,7 @@ struct TaskListView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 150)
+                .frame(height: min(CGFloat(taskStore.tasks.count) * rowHeight, 150))
             }
 
             TextField("Add a task…", text: $newTaskTitle)
