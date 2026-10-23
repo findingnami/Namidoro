@@ -8,7 +8,6 @@
 import Cocoa
 import SwiftUI
 import UserNotifications
-import os
 
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     static var shared: AppDelegate? = nil
@@ -19,7 +18,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // TimerViewModel instance instead of each ending up with their own.
     var timerVM: TimerViewModel?
 
-    private let launchLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Namidoro", category: "audio")
     private var outsideClickMonitors: [Any] = []
 
     override init() {
@@ -31,10 +29,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // Set notification delegate to show notifications even when app is active
         UNUserNotificationCenter.current().delegate = self
         setupObservers()
-        logBundleResources()
-        // One-shot playback test, independent of the timer's own trigger logic — if this is
-        // silent too, the bug is in audio playback/bundling, not in when playSound() gets called.
-        TimerViewModel.playSound(named: "Mode")
     }
 
     // MARK: - UNUserNotificationCenterDelegate
@@ -43,21 +37,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         // Show notification even when app is in foreground
         completionHandler([.banner, .sound])
-    }
-
-    // MARK: - Audio diagnostics (Bug B)
-
-    private func logBundleResources() {
-        let resourcePath = Bundle.main.resourcePath ?? "<nil>"
-        launchLogger.info("Bundle.main.resourcePath = \(resourcePath, privacy: .public)")
-
-        guard let resourcePath = Bundle.main.resourcePath,
-              let contents = try? FileManager.default.contentsOfDirectory(atPath: resourcePath) else {
-            launchLogger.error("logBundleResources: could not list contents of resourcePath")
-            return
-        }
-        let wavFiles = contents.filter { $0.lowercased().hasSuffix(".wav") }
-        launchLogger.info("wav files in resourcePath: \(wavFiles, privacy: .public)")
     }
 
     private func setupObservers() {
