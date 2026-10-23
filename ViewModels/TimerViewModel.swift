@@ -29,7 +29,6 @@ class TimerViewModel: ObservableObject {
     @Published var timeRemaining: Int
     @Published var isRunning: Bool = false
     @Published var mode: TimerMode = .work
-    @Published var showAlert: Bool = false
 
     private var timer: Timer?
     private var hasTriggeredOneMinuteWarning: Bool = false
@@ -37,9 +36,8 @@ class TimerViewModel: ObservableObject {
 
     init(startTime: Int) {
         self.timeRemaining = startTime
-        // Timer is started explicitly (AppDelegate.applicationDidFinishLaunching) instead of here.
-        // Every TimerViewModel() used to start its own live Timer on creation, which is what let a
-        // single stray instance run silently in the background.
+        // Timer is started explicitly from NamidoroApp.body, not here — starting it on creation
+        // would let any throwaway TimerViewModel run its own live Timer in the background.
     }
 
     // MARK: - Display Helpers
@@ -153,9 +151,8 @@ class TimerViewModel: ObservableObject {
     
     // MARK: - Sounds
 
-    // Static (not per-instance) because AppDelegate's one-shot launch-time diagnostic test
-    // play needs to share the exact same player registry and logging as the timer's own
-    // trigger-based calls — there's only ever one real "sound subsystem" in this app.
+    // Static so every call shares one player registry — a per-instance registry would let a
+    // replaced TimerViewModel re-trigger playback from a stale, released AVAudioPlayer.
     private static let audioLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Namidoro", category: "audio")
     private static var audioPlayers: [String: AVAudioPlayer] = [:]
     private static var fallbackSounds: [String: NSSound] = [:]
@@ -167,9 +164,7 @@ class TimerViewModel: ObservableObject {
         // can't cut the other off.
         if let existing = audioPlayers[name] {
             existing.currentTime = 0
-            let didPlay = existing.play()
-            audioLogger.info("playSound: replaying '\(name, privacy: .public)' — play() returned \(didPlay, privacy: .public)")
-            verifyStillPlaying(existing, name: name)
+            existing.play()
             return
         }
 
@@ -178,16 +173,12 @@ class TimerViewModel: ObservableObject {
             playFallback(named: name, url: nil)
             return
         }
-        audioLogger.info("playSound: resolved URL for '\(name, privacy: .public)': \(soundURL.path, privacy: .public)")
 
         do {
             let player = try AVAudioPlayer(contentsOf: soundURL)
             player.prepareToPlay()
-            let didPlay = player.play()
-            audioLogger.info("playSound: AVAudioPlayer loaded '\(name, privacy: .public)' — play() returned \(didPlay, privacy: .public)")
-            if didPlay {
+            if player.play() {
                 audioPlayers[name] = player
-                verifyStillPlaying(player, name: name)
             } else {
                 audioLogger.error("playSound: AVAudioPlayer.play() returned false for '\(name, privacy: .public)' — falling back to NSSound")
                 playFallback(named: name, url: soundURL)
@@ -195,12 +186,6 @@ class TimerViewModel: ObservableObject {
         } catch {
             audioLogger.error("playSound: AVAudioPlayer(contentsOf:) threw for '\(name, privacy: .public)': \(String(describing: error), privacy: .public)")
             playFallback(named: name, url: soundURL)
-        }
-    }
-
-    private static func verifyStillPlaying(_ player: AVAudioPlayer, name: String) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            audioLogger.info("playSound: '\(name, privacy: .public)' isPlaying after 0.2s = \(player.isPlaying, privacy: .public)")
         }
     }
 
@@ -214,8 +199,7 @@ class TimerViewModel: ObservableObject {
             return
         }
         fallbackSounds[name] = sound
-        let didPlay = sound.play()
-        audioLogger.info("playSound fallback: NSSound played '\(name, privacy: .public)' — play() returned \(didPlay, privacy: .public)")
+        sound.play()
     }
     
     // MARK: - Notifications

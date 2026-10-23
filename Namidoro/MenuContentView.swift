@@ -61,6 +61,5 @@ struct MenuContentView: View {
                 .padding()
             }
         }
-        .frame(width: 200)
     }
 }

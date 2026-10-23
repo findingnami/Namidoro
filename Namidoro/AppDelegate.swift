@@ -8,7 +8,6 @@
 import Cocoa
 import SwiftUI
 import UserNotifications
-import os
 
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     static var shared: AppDelegate? = nil
@@ -19,7 +18,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // TimerViewModel instance instead of each ending up with their own.
     var timerVM: TimerViewModel?
 
-    private let launchLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Namidoro", category: "audio")
     private var outsideClickMonitors: [Any] = []
 
     override init() {
@@ -31,10 +29,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // Set notification delegate to show notifications even when app is active
         UNUserNotificationCenter.current().delegate = self
         setupObservers()
-        logBundleResources()
-        // One-shot playback test, independent of the timer's own trigger logic — if this is
-        // silent too, the bug is in audio playback/bundling, not in when playSound() gets called.
-        TimerViewModel.playSound(named: "Mode")
     }
 
     // MARK: - UNUserNotificationCenterDelegate
@@ -45,28 +39,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         completionHandler([.banner, .sound])
     }
 
-    // MARK: - Audio diagnostics (Bug B)
-
-    private func logBundleResources() {
-        let resourcePath = Bundle.main.resourcePath ?? "<nil>"
-        launchLogger.info("Bundle.main.resourcePath = \(resourcePath, privacy: .public)")
-
-        guard let resourcePath = Bundle.main.resourcePath,
-              let contents = try? FileManager.default.contentsOfDirectory(atPath: resourcePath) else {
-            launchLogger.error("logBundleResources: could not list contents of resourcePath")
-            return
-        }
-        let wavFiles = contents.filter { $0.lowercased().hasSuffix(".wav") }
-        launchLogger.info("wav files in resourcePath: \(wavFiles, privacy: .public)")
-    }
-
     private func setupObservers() {
         NotificationCenter.default.addObserver(
             forName: .didEnterBreakMode,
             object: nil,
             queue: .main
         ) { notification in
-            // Bug A.1: the popover must close the moment a break starts, not just the overlay appear.
+            // The popover must close the moment a break starts, not just when the overlay appears.
             AppDelegate.closeMenuBarExtraPopover()
             // Get timerVM from the notification object
             if let timerVM = notification.object as? TimerViewModel {
@@ -82,13 +61,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             AppDelegate.shared?.hideBreakOverlay()
         }
 
-        // Bug A.2 fallback: a .window-style MenuBarExtra popover is documented to dismiss on
-        // outside click, but that relies on the app running as an accessory app (LSUIElement =
-        // true). This target's build settings leave INFOPLIST_KEY_LSUIElement unset, so the app
-        // runs with a regular activation policy and the popover never resigns key on an outside
-        // click. That's a build setting inside the .xcodeproj, which is off-limits here, so we
-        // detect the popover opening/closing ourselves and enforce outside-click dismissal
-        // manually instead.
+        // A .window-style MenuBarExtra popover is documented to dismiss on outside click, but
+        // that relies on the app running as an accessory app (LSUIElement = true). This target's
+        // build settings leave INFOPLIST_KEY_LSUIElement unset, so the app runs with a regular
+        // activation policy and the popover never resigns key on an outside click. That's a
+        // build setting inside the .xcodeproj, which is off-limits here, so we detect the
+        // popover opening/closing ourselves and enforce outside-click dismissal manually instead.
         NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification,
             object: nil,
@@ -108,7 +86,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         }
     }
 
-    // MARK: - MenuBarExtra popover window management (Bug A)
+    // MARK: - MenuBarExtra popover window management
 
     private static func isMenuBarExtraWindow(_ window: NSWindow) -> Bool {
         String(describing: type(of: window)).contains("MenuBarExtraWindow")
@@ -141,7 +119,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         let local = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { event in
             if event.type == .keyDown {
                 if event.keyCode == 53 { // Escape
-                    AppDelegate.closeMenuBarExtraPopover()
+                    // While typing in the task field, the field editor (an NSTextView) is
+                    // firstResponder — let Escape pass through to it instead of closing the
+                    // popover out from under the user mid-edit.
+                    let isEditingText = window.firstResponder is NSTextView
+                    if !isEditingText {
+                        AppDelegate.closeMenuBarExtraPopover()
+                    }
                 }
                 return event
             }

@@ -15,6 +15,8 @@ struct WorkModeView: View {
             Text(timerVM.timeDisplay)
                 .font(.title)
 
+            TaskListView()
+
             MenuRow(title: timerVM.isRunning ? "Pause" : "Start") {
                 timerVM.isRunning ? timerVM.pause() : timerVM.start()
                 AppDelegate.closeMenuBarExtraPopover()
@@ -29,7 +31,7 @@ struct WorkModeView: View {
                 NSApplication.shared.terminate(nil)
             }
         }
-        .frame(width: 200)
+        .frame(width: 240)
         .padding()
     }
 }
@@ -38,4 +40,5 @@ struct WorkModeView: View {
     let sampleTimer = TimerViewModel(startTime: TimerViewModel.workDuration)
     return WorkModeView()
         .environmentObject(sampleTimer)
+        .environmentObject(TaskStore())
 }
