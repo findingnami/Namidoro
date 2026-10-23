@@ -54,6 +54,10 @@ struct NamidoroApp: App {
             // use the @StateObject directly here so the label updates live
             HStack(spacing: 6) {
                 Image(systemName: "n.circle")
+                if let selectedTitle = taskStore.selectedTask?.title {
+                    Text(Self.truncatedTaskTitle(selectedTitle))
+                        .lineLimit(1)
+                }
                 Text("\(timerVM.timeRemaining / 60)m") // minutes-only label
             }
         }
@@ -61,5 +65,10 @@ struct NamidoroApp: App {
         // also make the VM available to any SwiftUI view that uses environmentObject
         .environmentObject(timerVM)
         .environmentObject(taskStore)
+    }
+
+    private static func truncatedTaskTitle(_ title: String, maxLength: Int = 18) -> String {
+        guard title.count > maxLength else { return title }
+        return String(title.prefix(maxLength)) + "…"
     }
 }
