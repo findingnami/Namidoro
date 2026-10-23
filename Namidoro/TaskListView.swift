@@ -24,9 +24,24 @@ private extension View {
     }
 }
 
+// Reports a row's actual rendered height (including its own padding) up to
+// TaskListView, so the scrollable list's frame can be sized from the real row
+// height instead of a hand-measured guess.
+private struct TaskRowHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 // A row for a single task: checkbox to toggle done, title to select, and a
 // delete button that only appears on hover — mirrors MenuRow's hover style.
 struct TaskRowView: View {
+    // Exposed so TaskListView can derive a same-ballpark fallback height for the
+    // single frame before the real height has been measured via TaskRowHeightKey.
+    static let checkboxTapSize: CGFloat = 22
+    static let verticalPadding: CGFloat = 4
+
     let task: TaskItem
     @EnvironmentObject var taskStore: TaskStore
 
@@ -63,7 +78,7 @@ struct TaskRowView: View {
                 checkboxView
             }
             .buttonStyle(.plain)
-            .frame(width: 22, height: 22)
+            .frame(width: Self.checkboxTapSize, height: Self.checkboxTapSize)
             .contentShape(Rectangle())
 
             Text(task.title)
@@ -87,7 +102,7 @@ struct TaskRowView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 4)
+        .padding(.vertical, Self.verticalPadding)
         .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 6)
@@ -106,6 +121,11 @@ struct TaskRowView: View {
             guard !task.isDone else { return }
             taskStore.select(task)
         }
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: TaskRowHeightKey.self, value: proxy.size.height)
+            }
+        )
     }
 }
 
@@ -118,9 +138,23 @@ struct TaskListView: View {
 
     // A .window-style MenuBarExtra popover sizes itself to fit its content, and ScrollView
     // has no intrinsic height of its own — a bare .frame(maxHeight:) with no floor lets it
-    // collapse to zero. Deriving an explicit height from the row count (capped at ~150pt)
-    // sidesteps that instead of relying on the ScrollView's own size negotiation.
-    private let rowHeight: CGFloat = 26
+    // collapse to zero. rowHeight/listHeight below derive an explicit height instead of
+    // relying on the ScrollView's own size negotiation.
+    @State private var measuredRowHeight: CGFloat?
+    private let maxVisibleRows = 8
+    private let rowSpacing: CGFloat = 2
+
+    // Before TaskRowHeightKey reports the real rendered height (first layout pass only),
+    // fall back to the row's known constants rather than an unrelated guess.
+    private var rowHeight: CGFloat {
+        measuredRowHeight ?? (TaskRowView.checkboxTapSize + TaskRowView.verticalPadding * 2)
+    }
+
+    private var listHeight: CGFloat {
+        let visibleRows = min(taskStore.tasks.count, maxVisibleRows)
+        guard visibleRows > 0 else { return 0 }
+        return CGFloat(visibleRows) * rowHeight + CGFloat(visibleRows - 1) * rowSpacing
+    }
 
     private var openTasks: [TaskItem] {
         taskStore.tasks.filter { !$0.isDone }
@@ -138,9 +172,14 @@ struct TaskListView: View {
                 .padding(.leading, 4)
 
             VStack(alignment: .leading, spacing: 6) {
-                if !taskStore.tasks.isEmpty {
+                if taskStore.tasks.isEmpty {
+                    Text("No tasks yet")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 4)
+                } else {
                     ScrollView {
-                        VStack(spacing: 2) {
+                        VStack(spacing: rowSpacing) {
                             ForEach(openTasks) { task in
                                 TaskRowView(task: task)
                                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -151,7 +190,11 @@ struct TaskListView: View {
                             }
                         }
                     }
-                    .frame(height: min(CGFloat(taskStore.tasks.count) * rowHeight, 150))
+                    .frame(height: listHeight)
+                    .onPreferenceChange(TaskRowHeightKey.self) { height in
+                        guard height > 0 else { return }
+                        measuredRowHeight = height
+                    }
                 }
 
                 addTaskField
