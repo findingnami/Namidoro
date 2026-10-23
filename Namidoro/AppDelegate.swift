@@ -119,7 +119,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         let local = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { event in
             if event.type == .keyDown {
                 if event.keyCode == 53 { // Escape
-                    AppDelegate.closeMenuBarExtraPopover()
+                    // While typing in the task field, the field editor (an NSTextView) is
+                    // firstResponder — let Escape pass through to it instead of closing the
+                    // popover out from under the user mid-edit.
+                    let isEditingText = window.firstResponder is NSTextView
+                    if !isEditingText {
+                        AppDelegate.closeMenuBarExtraPopover()
+                    }
                 }
                 return event
             }
