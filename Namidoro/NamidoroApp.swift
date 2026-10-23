@@ -51,18 +51,15 @@ struct NamidoroApp: App {
                 .environmentObject(timerVM)
                 .environmentObject(taskStore)
         } label: {
-            // use the @StateObject directly here so the label updates live
+            // use the @StateObject directly here so the label updates live.
+            // MenuBarExtra only renders the FIRST Text in a label's view hierarchy — a second,
+            // sibling Text (even inside the same HStack) is silently dropped. So the minutes
+            // and the task title are composed into ONE Text's string interpolation instead.
             HStack(spacing: 6) {
                 Image(systemName: "n.circle")
-                // Minutes come before the title so width limits can only ever
-                // truncate the title — the time itself is never at risk of clipping.
-                Text("\(timerVM.timeRemaining / 60)m") // minutes-only label
+                Text(Self.labelText(minutes: timerVM.timeRemaining / 60, taskTitle: taskStore.selectedTask?.title))
                     .fixedSize()
-                    .layoutPriority(1)
-                if let selectedTitle = taskStore.selectedTask?.title {
-                    Text(Self.truncatedTaskTitle(selectedTitle))
-                        .lineLimit(1)
-                }
+                    .lineLimit(1)
             }
         }
         .menuBarExtraStyle(.window)
@@ -71,7 +68,12 @@ struct NamidoroApp: App {
         .environmentObject(taskStore)
     }
 
-    private static func truncatedTaskTitle(_ title: String, maxLength: Int = 14) -> String {
+    private static func labelText(minutes: Int, taskTitle: String?) -> String {
+        guard let taskTitle else { return "\(minutes)m" }
+        return "\(minutes)m · \(truncatedTaskTitle(taskTitle))"
+    }
+
+    private static func truncatedTaskTitle(_ title: String, maxLength: Int = 16) -> String {
         guard title.count > maxLength else { return title }
         return String(title.prefix(maxLength)) + "…"
     }
