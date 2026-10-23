@@ -54,11 +54,15 @@ struct NamidoroApp: App {
             // use the @StateObject directly here so the label updates live
             HStack(spacing: 6) {
                 Image(systemName: "n.circle")
+                // Minutes come before the title so width limits can only ever
+                // truncate the title — the time itself is never at risk of clipping.
+                Text("\(timerVM.timeRemaining / 60)m") // minutes-only label
+                    .fixedSize()
+                    .layoutPriority(1)
                 if let selectedTitle = taskStore.selectedTask?.title {
                     Text(Self.truncatedTaskTitle(selectedTitle))
                         .lineLimit(1)
                 }
-                Text("\(timerVM.timeRemaining / 60)m") // minutes-only label
             }
         }
         .menuBarExtraStyle(.window)
@@ -67,7 +71,7 @@ struct NamidoroApp: App {
         .environmentObject(taskStore)
     }
 
-    private static func truncatedTaskTitle(_ title: String, maxLength: Int = 18) -> String {
+    private static func truncatedTaskTitle(_ title: String, maxLength: Int = 14) -> String {
         guard title.count > maxLength else { return title }
         return String(title.prefix(maxLength)) + "…"
     }
