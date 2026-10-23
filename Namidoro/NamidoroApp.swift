@@ -67,7 +67,16 @@ struct NamidoroApp: App {
             // and the task title are composed into ONE Text's string interpolation instead.
             HStack(spacing: 6) {
                 Image(systemName: "n.circle")
-                Text(Self.labelText(minutes: timerVM.timeRemaining / 60, taskTitle: taskStore.selectedTask?.title))
+                // Reads settingsStore directly (same as timerVM/taskStore above) so the label
+                // updates live the moment the Settings panel's length stepper or "Show task"
+                // toggle changes — no extra plumbing needed since settingsStore is already a
+                // @StateObject in scope here.
+                Text(MenuBarLabelFormatter.labelText(
+                    minutes: timerVM.timeRemaining / 60,
+                    taskTitle: taskStore.selectedTask?.title,
+                    maxTitleLength: settingsStore.menuBarTitleLength,
+                    showTask: settingsStore.showTaskInMenuBar
+                ))
                     .fixedSize()
                     .lineLimit(1)
             }
@@ -77,15 +86,5 @@ struct NamidoroApp: App {
         .environmentObject(timerVM)
         .environmentObject(taskStore)
         .environmentObject(settingsStore)
-    }
-
-    private static func labelText(minutes: Int, taskTitle: String?) -> String {
-        guard let taskTitle else { return "\(minutes)m" }
-        return "\(minutes)m · \(truncatedTaskTitle(taskTitle))"
-    }
-
-    private static func truncatedTaskTitle(_ title: String, maxLength: Int = 16) -> String {
-        guard title.count > maxLength else { return title }
-        return String(title.prefix(maxLength)) + "…"
     }
 }

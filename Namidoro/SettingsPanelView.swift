@@ -41,6 +41,13 @@ struct SettingsPanelView: View {
                 Toggle("Sounds", isOn: $settingsStore.soundsEnabled)
                 Toggle("Launch at Login", isOn: $settingsStore.launchAtLogin)
 
+                Divider().opacity(0.3)
+
+                Toggle("Show Task in Menu Bar", isOn: $settingsStore.showTaskInMenuBar)
+                Stepper(value: $settingsStore.menuBarTitleLength, in: SettingsStore.menuBarTitleLengthRange) {
+                    settingsRow(label: "Menu Bar Title Length", value: "\(settingsStore.menuBarTitleLength) chars")
+                }
+
                 if let message = settingsStore.launchAtLoginErrorMessage {
                     Text(message)
                         .font(.caption2)
@@ -60,6 +67,12 @@ struct SettingsPanelView: View {
                         .font(.caption2)
                     }
                 }
+
+                Divider().opacity(0.3)
+
+                Text("Very long titles may still be hidden by macOS when the menu bar is crowded (for example near the notch).")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
             .toggleStyle(.switch)
             .padding(10)
