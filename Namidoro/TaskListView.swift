@@ -17,14 +17,33 @@ struct TaskRowView: View {
         taskStore.selectedTaskID == task.id
     }
 
+    private var checkboxView: some View {
+        RoundedRectangle(cornerRadius: 5)
+            .fill(task.isDone ? Color.accentColor : Color.clear)
+            .frame(width: 18, height: 18)
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(task.isDone ? Color.clear : Color.secondary, lineWidth: 1.5)
+            )
+            .overlay(
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .opacity(task.isDone ? 1 : 0)
+            )
+            .animation(.easeInOut(duration: 0.15), value: task.isDone)
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             Button {
                 taskStore.toggleDone(task)
             } label: {
-                Image(systemName: task.isDone ? "checkmark.square.fill" : "square")
+                checkboxView
             }
             .buttonStyle(.plain)
+            .frame(width: 22, height: 22)
+            .contentShape(Rectangle())
 
             Text(task.title)
                 .strikethrough(task.isDone)
