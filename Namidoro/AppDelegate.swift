@@ -45,7 +45,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             object: nil,
             queue: .main
         ) { notification in
-            // Bug A.1: the popover must close the moment a break starts, not just the overlay appear.
+            // The popover must close the moment a break starts, not just when the overlay appears.
             AppDelegate.closeMenuBarExtraPopover()
             // Get timerVM from the notification object
             if let timerVM = notification.object as? TimerViewModel {
@@ -61,13 +61,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             AppDelegate.shared?.hideBreakOverlay()
         }
 
-        // Bug A.2 fallback: a .window-style MenuBarExtra popover is documented to dismiss on
-        // outside click, but that relies on the app running as an accessory app (LSUIElement =
-        // true). This target's build settings leave INFOPLIST_KEY_LSUIElement unset, so the app
-        // runs with a regular activation policy and the popover never resigns key on an outside
-        // click. That's a build setting inside the .xcodeproj, which is off-limits here, so we
-        // detect the popover opening/closing ourselves and enforce outside-click dismissal
-        // manually instead.
+        // A .window-style MenuBarExtra popover is documented to dismiss on outside click, but
+        // that relies on the app running as an accessory app (LSUIElement = true). This target's
+        // build settings leave INFOPLIST_KEY_LSUIElement unset, so the app runs with a regular
+        // activation policy and the popover never resigns key on an outside click. That's a
+        // build setting inside the .xcodeproj, which is off-limits here, so we detect the
+        // popover opening/closing ourselves and enforce outside-click dismissal manually instead.
         NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification,
             object: nil,
@@ -87,7 +86,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         }
     }
 
-    // MARK: - MenuBarExtra popover window management (Bug A)
+    // MARK: - MenuBarExtra popover window management
 
     private static func isMenuBarExtraWindow(_ window: NSWindow) -> Bool {
         String(describing: type(of: window)).contains("MenuBarExtraWindow")

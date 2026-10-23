@@ -36,9 +36,8 @@ class TimerViewModel: ObservableObject {
 
     init(startTime: Int) {
         self.timeRemaining = startTime
-        // Timer is started explicitly (AppDelegate.applicationDidFinishLaunching) instead of here.
-        // Every TimerViewModel() used to start its own live Timer on creation, which is what let a
-        // single stray instance run silently in the background.
+        // Timer is started explicitly from NamidoroApp.body, not here — starting it on creation
+        // would let any throwaway TimerViewModel run its own live Timer in the background.
     }
 
     // MARK: - Display Helpers
