@@ -11,7 +11,9 @@ import UserNotifications
 
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     static var shared: AppDelegate? = nil
-    var overlayWindow: NSWindow?
+    var overlayWindows: [NSWindow] = []
+    private var isBreakActive = false
+    private var screenParamsObserver: NSObjectProtocol?
 
     // Handed over once from NamidoroApp.body (not NamidoroApp.init() — AppDelegate.shared isn't
     // guaranteed set yet at that point) so the menu and the break overlay always share the same
@@ -145,21 +147,61 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // MARK: - Overlay Management
 
     func showBreakOverlay(with timerVM: TimerViewModel) {
-        guard let screenFrame = NSScreen.main?.frame else { return }
+        isBreakActive = true
+        observeScreenParameterChanges(timerVM: timerVM)
 
-        if let window = overlayWindow {
-            // A window already exists — it may be mid fade-out from hideBreakOverlay().
-            // Fade it back in instead of bailing out, so a break that starts during that
+        if !overlayWindows.isEmpty {
+            // Windows already exist — they may be mid fade-out from hideBreakOverlay().
+            // Fade them back in instead of bailing out, so a break that starts during that
             // 0.5s window still shows the overlay.
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.5
-                window.animator().alphaValue = 1.0
+            for window in overlayWindows {
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.5
+                    window.animator().alphaValue = 1.0
+                }
             }
             return
         }
 
-        let window = NSWindow(
-            contentRect: screenFrame,
+        overlayWindows = NSScreen.screens.map { makeOverlayWindow(for: $0, timerVM: timerVM) }
+        for window in overlayWindows {
+            window.makeKeyAndOrderFront(nil)
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.5
+                window.animator().alphaValue = 1.0
+            }
+        }
+    }
+
+    func hideBreakOverlay() {
+        isBreakActive = false
+        if let screenParamsObserver {
+            NotificationCenter.default.removeObserver(screenParamsObserver)
+            self.screenParamsObserver = nil
+        }
+
+        let windowsToClose = overlayWindows
+        guard !windowsToClose.isEmpty else { return }
+
+        // Fade out animation before closing
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.5
+            windowsToClose.forEach { $0.animator().alphaValue = 0 }
+        }, completionHandler: { [weak self] in
+            guard let self else { return }
+            for window in windowsToClose {
+                // If a new break started during the fade-out, showBreakOverlay already
+                // animated this same window's alpha back up — don't tear it down then.
+                guard window.alphaValue == 0 else { continue }
+                window.orderOut(nil)
+                self.overlayWindows.removeAll { $0 === window }
+            }
+        })
+    }
+
+    private func makeOverlayWindow(for screen: NSScreen, timerVM: TimerViewModel) -> NSWindow {
+        let window = BreakOverlayWindow(
+            contentRect: screen.frame,
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -171,37 +213,40 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         window.level = .mainMenu + 1
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.ignoresMouseEvents = false
+        window.onEscape = { [weak timerVM] in
+            timerVM?.switchToWorkMode()
+        }
 
         let rootView = FullScreenBreakView()
             .environmentObject(timerVM)
         let hostingView = NSHostingView(rootView: rootView)
-        hostingView.frame = screenFrame
+        // Window-relative, NOT screen.frame — a secondary display's frame has a non-zero
+        // origin in the global coordinate space, and using that directly here would push
+        // the content outside the window's own (0,0)-based bounds.
+        hostingView.frame = NSRect(origin: .zero, size: screen.frame.size)
         window.contentView = hostingView
 
-        window.makeKeyAndOrderFront(nil)
-        overlayWindow = window
-
-        // Fade in animation
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.5
-            window.animator().alphaValue = 1.0
-        }
+        return window
     }
 
-    func hideBreakOverlay() {
-        guard let window = overlayWindow else { return }
-
-        // Fade out animation before closing
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.5
-            window.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            guard let self = self, self.overlayWindow === window else { return }
-            // If a new break started during the fade-out, showBreakOverlay already
-            // animated this same window's alpha back up — don't tear it down then.
-            guard window.alphaValue == 0 else { return }
-            window.orderOut(nil)
-            self.overlayWindow = nil
-        })
+    // Monitor plugged/unplugged while a break is active — rebuild the window set to match
+    // the new NSScreen.screens instead of leaving stale windows positioned for displays that
+    // no longer exist (or missing ones for newly-connected displays).
+    private func observeScreenParameterChanges(timerVM: TimerViewModel) {
+        guard screenParamsObserver == nil else { return }
+        screenParamsObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self, weak timerVM] _ in
+            guard let self, self.isBreakActive, let timerVM else { return }
+            let oldWindows = self.overlayWindows
+            self.overlayWindows = NSScreen.screens.map { self.makeOverlayWindow(for: $0, timerVM: timerVM) }
+            for window in self.overlayWindows {
+                window.alphaValue = 1.0
+                window.makeKeyAndOrderFront(nil)
+            }
+            oldWindows.forEach { $0.orderOut(nil) }
+        }
     }
 }

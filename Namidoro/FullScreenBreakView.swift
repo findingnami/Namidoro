@@ -33,6 +33,10 @@ struct FullScreenBreakView: View {
                 .font(.title3)
                 .padding(.top, 10)
 
+                Text("Press Esc to skip")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 Text(currentTime.formatted(date: .omitted, time: .shortened))
                     .font(.headline)
                     .padding(.top, 30)
