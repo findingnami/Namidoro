@@ -30,14 +30,36 @@ class TimerViewModel: ObservableObject {
     @Published var isRunning: Bool = false
     @Published var mode: TimerMode = .work
 
+    private let now: () -> Date
+    // The wall-clock instant the current session ends. timeRemaining is derived from this on
+    // every tick instead of being decremented — a Timer that's suspended for the duration of
+    // sleep (see observeSleepWake below) can't drift the countdown the way a per-tick `-= 1`
+    // would once it resumes.
+    private var endDate: Date?
     private var timer: Timer?
-    private var hasTriggeredOneMinuteWarning: Bool = false
+    // private(set) rather than private so tests can assert the warning fired without
+    // needing an observable side effect (sound/notification) to hook into.
+    private(set) var hasTriggeredOneMinuteWarning: Bool = false
     private var timerID: UUID = UUID()  // Track the current valid timer
+    // Captured when a work session starts so a later Settings change (step 5) can't retroactively
+    // gate the warning for a session that's already in flight.
+    private var workSessionDuration: Int
+    private var wasRunningBeforeSleep = false
+    private var sleepObserver: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
 
-    init(startTime: Int) {
+    init(startTime: Int, now: @escaping () -> Date = Date.init) {
         self.timeRemaining = startTime
+        self.now = now
+        self.workSessionDuration = startTime
         // Timer is started explicitly from NamidoroApp.body, not here — starting it on creation
         // would let any throwaway TimerViewModel run its own live Timer in the background.
+        observeSleepWake()
+    }
+
+    deinit {
+        if let sleepObserver { NSWorkspace.shared.notificationCenter.removeObserver(sleepObserver) }
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
     }
 
     // MARK: - Display Helpers
@@ -51,55 +73,25 @@ class TimerViewModel: ObservableObject {
     func start() {
         // if already running, do nothing
         if isRunning { return }
-        
+
         // Invalidate any existing timer FIRST before setting isRunning
         timer?.invalidate()
         timer = nil
-        
+
         isRunning = true
-        
+        endDate = now().addingTimeInterval(TimeInterval(timeRemaining))
+
         // Generate a new timer ID for this timer session
         let currentTimerID = UUID()
         timerID = currentTimerID
 
         // Create a Timer and add it to the main RunLoop in .common mode so UI updates while menus/popovers are open
-        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            
-            // FIRST check: Is this the current valid timer?
-            guard self.timerID == currentTimerID else {
-                // This is a stale timer, exit immediately
+        let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self, self.timerID == currentTimerID else {
+                // Stale timer from a previous start() — exit immediately
                 return
             }
-            
-            // SECOND check: Is the timer still supposed to be running?
-            guard self.isRunning else { return }
-            
-            if self.timeRemaining > 0 {
-                self.timeRemaining -= 1
-
-                // Only trigger the 1-minute warning if we're still in work mode and haven't already triggered it
-                // AND this is still the current valid timer
-                if self.mode == .work && 
-                   self.timeRemaining == 60 && 
-                   !self.hasTriggeredOneMinuteWarning &&
-                   self.timerID == currentTimerID {
-                    self.hasTriggeredOneMinuteWarning = true
-                    Self.playSound(named: "Alert")
-                    self.showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
-                }
-            } else {
-                // time up -> switch modes
-                // Double-check this is still the valid timer before switching modes
-                guard self.timerID == currentTimerID else { return }
-                
-                self.stop()
-                if self.mode == .work {
-                    self.switchToBreakMode()
-                } else {
-                    self.switchToWorkMode()
-                }
-            }
+            self.tick()
         }
 
         self.timer = t
@@ -107,9 +99,14 @@ class TimerViewModel: ObservableObject {
     }
 
     func pause() {
+        guard isRunning else { return }
+        if let endDate {
+            timeRemaining = max(0, Int(ceil(endDate.timeIntervalSince(now()))))
+        }
         isRunning = false
         timer?.invalidate()
         timer = nil
+        endDate = nil
         // timeRemaining is preserved
     }
 
@@ -117,29 +114,87 @@ class TimerViewModel: ObservableObject {
         isRunning = false
         timer?.invalidate()
         timer = nil
-        
+        endDate = nil
+
         // Generate a new timer ID to invalidate any stale callbacks
         timerID = UUID()
     }
-    
+
+    // Drives one countdown step from `endDate`. Exposed (rather than private) so tests can
+    // advance the countdown deterministically through the injected `now` clock instead of
+    // waiting on a real Timer and real sleep().
+    func tick() {
+        guard isRunning, let endDate else { return }
+
+        timeRemaining = max(0, Int(ceil(endDate.timeIntervalSince(now()))))
+
+        if mode == .work,
+           !hasTriggeredOneMinuteWarning,
+           workSessionDuration > 60,
+           timeRemaining <= 60 {
+            hasTriggeredOneMinuteWarning = true
+            Self.playSound(named: "Alert")
+            showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
+        }
+
+        if timeRemaining == 0 {
+            stop()
+            if mode == .work {
+                switchToBreakMode()
+            } else {
+                switchToWorkMode()
+            }
+        }
+    }
+
+    // MARK: - Sleep / Wake
+
+    // A Timer never fires while the Mac is asleep, but the moment it wakes, RunLoop would
+    // otherwise deliver one that computes `endDate.timeIntervalSince(now())` against the
+    // POST-wake wall clock — silently consuming the entire sleep duration (and potentially
+    // firing a mode switch for a session that "ended" while asleep). Pausing before sleep and
+    // resuming with a freshly-computed endDate after wake keeps sleep time from counting at all.
+    private func observeSleepWake() {
+        let center = NSWorkspace.shared.notificationCenter
+        sleepObserver = center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.handleWillSleep()
+        }
+        wakeObserver = center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.handleDidWake()
+        }
+    }
+
+    private func handleWillSleep() {
+        guard isRunning else { return }
+        wasRunningBeforeSleep = true
+        pause()
+    }
+
+    private func handleDidWake() {
+        guard wasRunningBeforeSleep else { return }
+        wasRunningBeforeSleep = false
+        start()
+    }
+
     // MARK: - Mode Switching
     func switchToWorkMode() {
         // Prevent switching if already in work mode
         guard mode != .work else { return }
-        
+
         stop()
         mode = .work
-        timeRemaining = Self.workDuration
+        workSessionDuration = Self.workDuration
+        timeRemaining = workSessionDuration
         hasTriggeredOneMinuteWarning = false  // Reset the flag for the new work session
         Self.playSound(named: "Mode")
         NotificationCenter.default.post(name: .didExitBreakMode, object: self)
         start()
     }
-    
+
     func switchToBreakMode() {
         // Prevent switching if already in break mode
         guard mode != .breakTime else { return }
-        
+
         stop()
         mode = .breakTime
         timeRemaining = Self.breakDuration
