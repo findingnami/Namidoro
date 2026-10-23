@@ -108,34 +108,59 @@ struct TaskListView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if !taskStore.tasks.isEmpty {
-                ScrollView {
-                    VStack(spacing: 2) {
-                        ForEach(openTasks) { task in
-                            TaskRowView(task: task)
-                        }
-                        ForEach(doneTasks) { task in
-                            TaskRowView(task: task)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Tasks")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 4)
+
+            VStack(alignment: .leading, spacing: 6) {
+                if !taskStore.tasks.isEmpty {
+                    ScrollView {
+                        VStack(spacing: 2) {
+                            ForEach(openTasks) { task in
+                                TaskRowView(task: task)
+                            }
+                            ForEach(doneTasks) { task in
+                                TaskRowView(task: task)
+                            }
                         }
                     }
+                    .frame(height: min(CGFloat(taskStore.tasks.count) * rowHeight, 150))
                 }
-                .frame(height: min(CGFloat(taskStore.tasks.count) * rowHeight, 150))
-            }
 
+                addTaskField
+
+                if !doneTasks.isEmpty {
+                    MenuRow(title: "Clear completed") {
+                        taskStore.clearCompleted()
+                    }
+                }
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.primary.opacity(0.04))
+            )
+        }
+    }
+
+    private var addTaskField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "plus.circle.fill")
+                .foregroundStyle(.secondary)
             TextField("Add a task…", text: $newTaskTitle)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
                 .onSubmit {
                     taskStore.add(title: newTaskTitle)
                     newTaskTitle = ""
                 }
-
-            if !doneTasks.isEmpty {
-                MenuRow(title: "Clear completed") {
-                    taskStore.clearCompleted()
-                }
-            }
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.primary.opacity(0.05))
+        )
     }
 }

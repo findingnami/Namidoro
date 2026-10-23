@@ -11,11 +11,14 @@ struct WorkModeView: View {
     @EnvironmentObject var timerVM: TimerViewModel
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Text(timerVM.timeDisplay)
                 .font(.title)
 
             TaskListView()
+
+            Divider()
+                .opacity(0.3)
 
             VStack(spacing: 2) {
                 MenuRow(title: timerVM.isRunning ? "Pause" : "Start", systemImage: timerVM.isRunning ? "pause.fill" : "play.fill") {
@@ -33,7 +36,7 @@ struct WorkModeView: View {
                 }
             }
         }
-        .frame(width: 240)
+        .frame(width: 250)
         .padding()
     }
 }
