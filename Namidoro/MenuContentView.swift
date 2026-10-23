@@ -59,19 +59,28 @@ struct MenuContentView: View {
                 WorkModeView()
             } else {
                 // Inline break popover — NOT FullScreenBreakView
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     Text("Break")
                         .font(.headline)
                     Text(timerVM.timeDisplay)
-                        .font(.title)
-                    MenuRow(title: "Skip Break") {
+                        .font(.system(size: 44, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                    MenuRow(title: "Skip Break", systemImage: "forward.fill") {
                         timerVM.switchToWorkMode()
                         AppDelegate.closeMenuBarExtraPopover()
                     }
                 }
-                .frame(width: 200)
+                .frame(width: 250)
                 .padding()
             }
         }
     }
+}
+
+#Preview("Break") {
+    let sampleTimer = TimerViewModel(startTime: TimerViewModel.breakDuration)
+    sampleTimer.mode = .breakTime
+    return MenuContentView()
+        .environmentObject(sampleTimer)
+        .environmentObject(TaskStore())
 }

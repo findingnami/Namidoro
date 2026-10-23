@@ -44,7 +44,14 @@ struct WorkModeView: View {
 
 #Preview {
     let sampleTimer = TimerViewModel(startTime: TimerViewModel.workDuration)
+    let sampleStore = TaskStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-tasks-\(UUID()).json"))
+    sampleStore.tasks = [
+        TaskItem(title: "Write quarterly report"),
+        TaskItem(title: "Review PR feedback"),
+        TaskItem(title: "Buy groceries", isDone: true)
+    ]
+    sampleStore.selectedTaskID = sampleStore.tasks[0].id
     return WorkModeView()
         .environmentObject(sampleTimer)
-        .environmentObject(TaskStore())
+        .environmentObject(sampleStore)
 }
