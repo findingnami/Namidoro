@@ -270,6 +270,12 @@ class TimerViewModel: ObservableObject {
     }
     
     // MARK: - Notifications
+
+    private static let notificationLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Namidoro", category: "notifications")
+
+    // A no-op (not an error) when notifications are denied — sounds and the break overlay
+    // don't depend on this succeeding, so there's nothing to recover or surface here beyond
+    // a log line. SettingsStore.notificationsDenied is what drives the Settings panel notice.
     func showMenuBarNotification(title: String, message: String) {
         let content = UNMutableNotificationContent()
         content.title = title
@@ -280,9 +286,9 @@ class TimerViewModel: ObservableObject {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Notification error: \(error.localizedDescription)")
+                Self.notificationLogger.error("showMenuBarNotification failed: \(error.localizedDescription, privacy: .public)")
             } else {
-                print("Notification sent: \(title)")
+                Self.notificationLogger.info("Notification sent: \(title, privacy: .public)")
             }
         }
     }

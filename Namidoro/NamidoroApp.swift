@@ -8,6 +8,7 @@
 import SwiftUI
 import UserNotifications
 import AppKit
+import os
 
 @main
 struct NamidoroApp: App {
@@ -16,13 +17,15 @@ struct NamidoroApp: App {
     @StateObject private var timerVM = TimerViewModel()
     @StateObject private var taskStore = TaskStore()
 
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Namidoro", category: "NamidoroApp")
+
     init() {
         // ask for notifications
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error = error {
-                print("Notification permission error: \(error)")
+                Self.logger.error("Notification permission error: \(String(describing: error), privacy: .public)")
             } else {
-                print("Notification permission granted: \(granted)")
+                Self.logger.info("Notification permission granted: \(granted, privacy: .public)")
             }
         }
     }

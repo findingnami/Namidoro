@@ -46,6 +46,20 @@ struct SettingsPanelView: View {
                         .font(.caption2)
                         .foregroundStyle(.red)
                 }
+
+                if settingsStore.notificationsDenied {
+                    Divider().opacity(0.3)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Notifications are off for Namidoro. Sounds and the break overlay still work.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Button("Open Notification Settings\u{2026}") {
+                            SettingsStore.openNotificationSettings()
+                        }
+                        .font(.caption2)
+                    }
+                }
             }
             .toggleStyle(.switch)
             .padding(10)
@@ -55,6 +69,7 @@ struct SettingsPanelView: View {
         .padding()
         .onAppear {
             settingsStore.refreshLaunchAtLoginStatus()
+            settingsStore.refreshNotificationPermissionStatus()
         }
     }
 

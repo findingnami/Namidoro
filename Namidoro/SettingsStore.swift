@@ -5,6 +5,8 @@
 
 import Foundation
 import ServiceManagement
+import UserNotifications
+import AppKit
 import os
 
 final class SettingsStore: ObservableObject {
@@ -38,6 +40,11 @@ final class SettingsStore: ObservableObject {
         }
     }
     @Published private(set) var launchAtLoginErrorMessage: String?
+
+    // Sounds and the break overlay don't depend on this — only the banner notification
+    // (showMenuBarNotification) does, and that silently no-ops when denied. This just
+    // drives whether the Settings panel shows a notice about it.
+    @Published private(set) var notificationsDenied = false
 
     private var isSyncingLaunchAtLoginFromSystem = false
     private let defaults: UserDefaults
@@ -103,5 +110,22 @@ final class SettingsStore: ObservableObject {
             launchAtLogin = !enable
             isSyncingLaunchAtLoginFromSystem = false
         }
+    }
+
+    // MARK: - Notification Permission
+
+    // Call when the Settings panel appears — the user may have changed this in System
+    // Settings since the app last asked, or since it last checked.
+    func refreshNotificationPermissionStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            DispatchQueue.main.async {
+                self?.notificationsDenied = settings.authorizationStatus == .denied
+            }
+        }
+    }
+
+    static func openNotificationSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") else { return }
+        NSWorkspace.shared.open(url)
     }
 }
