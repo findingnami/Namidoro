@@ -29,7 +29,6 @@ class TimerViewModel: ObservableObject {
     @Published var timeRemaining: Int
     @Published var isRunning: Bool = false
     @Published var mode: TimerMode = .work
-    @Published var showAlert: Bool = false
 
     private var timer: Timer?
     private var hasTriggeredOneMinuteWarning: Bool = false
