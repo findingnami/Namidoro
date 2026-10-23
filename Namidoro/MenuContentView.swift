@@ -43,6 +43,7 @@ struct MenuRow: View {
             .foregroundStyle(isHovering ? Color.white : tint)
         }
         .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
         .onHover { hovering in
             isHovering = hovering
         }

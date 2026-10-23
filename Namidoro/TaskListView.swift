@@ -5,6 +5,25 @@
 
 import SwiftUI
 
+// Material-based on macOS < 26, Liquid Glass on 26+ — the task card is the one
+// place in the popover asked to show real depth, so it gets its own helper here
+// rather than a one-off background() at each call site.
+private extension View {
+    @ViewBuilder
+    func taskCardBackground() -> some View {
+        if #available(macOS 26.0, *) {
+            self.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
+        } else {
+            self
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+                )
+        }
+    }
+}
+
 // A row for a single task: checkbox to toggle done, title to select, and a
 // delete button that only appears on hover — mirrors MenuRow's hover style.
 struct TaskRowView: View {
@@ -37,7 +56,9 @@ struct TaskRowView: View {
     var body: some View {
         HStack(spacing: 8) {
             Button {
-                taskStore.toggleDone(task)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    taskStore.toggleDone(task)
+                }
             } label: {
                 checkboxView
             }
@@ -55,7 +76,9 @@ struct TaskRowView: View {
 
             if isHovering {
                 Button {
-                    taskStore.delete(task)
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        taskStore.delete(task)
+                    }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Color.secondary)
@@ -120,9 +143,11 @@ struct TaskListView: View {
                         VStack(spacing: 2) {
                             ForEach(openTasks) { task in
                                 TaskRowView(task: task)
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                             ForEach(doneTasks) { task in
                                 TaskRowView(task: task)
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                         }
                     }
@@ -133,15 +158,14 @@ struct TaskListView: View {
 
                 if !doneTasks.isEmpty {
                     MenuRow(title: "Clear completed") {
-                        taskStore.clearCompleted()
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            taskStore.clearCompleted()
+                        }
                     }
                 }
             }
             .padding(10)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.primary.opacity(0.04))
-            )
+            .taskCardBackground()
         }
     }
 
@@ -152,7 +176,9 @@ struct TaskListView: View {
             TextField("Add a task…", text: $newTaskTitle)
                 .textFieldStyle(.plain)
                 .onSubmit {
-                    taskStore.add(title: newTaskTitle)
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        taskStore.add(title: newTaskTitle)
+                    }
                     newTaskTitle = ""
                 }
         }

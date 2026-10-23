@@ -13,7 +13,8 @@ struct WorkModeView: View {
     var body: some View {
         VStack(spacing: 12) {
             Text(timerVM.timeDisplay)
-                .font(.title)
+                .font(.system(size: 44, weight: .semibold, design: .rounded))
+                .monospacedDigit()
 
             TaskListView()
 
