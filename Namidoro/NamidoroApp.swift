@@ -12,7 +12,8 @@ import AppKit
 @main
 struct NamidoroApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var timerVM = TimerViewModel(startTime: TimerViewModel.workDuration)
+    @StateObject private var settingsStore = SettingsStore()
+    @StateObject private var timerVM = TimerViewModel()
     @StateObject private var taskStore = TaskStore()
 
     init() {
@@ -39,6 +40,11 @@ struct NamidoroApp: App {
         // updates" fault, since body is still being evaluated at this point.
         if appDelegate.timerVM == nil {
             appDelegate.timerVM = timerVM
+            appDelegate.settingsStore = settingsStore
+            // TimerViewModel's own default-constructed SettingsStore (see its init) was only
+            // ever a same-UserDefaults-backed bootstrap value for the very first session —
+            // replace it with the real, shared instance so Settings changes are observed.
+            timerVM.settingsStore = settingsStore
             DispatchQueue.main.async {
                 timerVM.start()
             }
@@ -50,6 +56,7 @@ struct NamidoroApp: App {
             MenuContentView()
                 .environmentObject(timerVM)
                 .environmentObject(taskStore)
+                .environmentObject(settingsStore)
         } label: {
             // use the @StateObject directly here so the label updates live.
             // MenuBarExtra only renders the FIRST Text in a label's view hierarchy — a second,
@@ -66,6 +73,7 @@ struct NamidoroApp: App {
         // also make the VM available to any SwiftUI view that uses environmentObject
         .environmentObject(timerVM)
         .environmentObject(taskStore)
+        .environmentObject(settingsStore)
     }
 
     private static func labelText(minutes: Int, taskTitle: String?) -> String {

@@ -15,9 +15,19 @@ import AppKit
 @Suite(.serialized)
 struct TimerViewModelTests {
 
+    // Each test gets its own UserDefaults suite so settings changes in one test can't leak
+    // into another (SettingsStore() with no arguments reads/writes UserDefaults.standard).
+    private func makeSettingsStore(workMinutes: Int = 25, breakMinutes: Int = 5) -> SettingsStore {
+        let defaults = UserDefaults(suiteName: "namidoro-tests-\(UUID().uuidString)")!
+        let store = SettingsStore(defaults: defaults)
+        store.workMinutes = workMinutes
+        store.breakMinutes = breakMinutes
+        return store
+    }
+
     @Test func countsDownFromFakeClock() async throws {
         var currentDate = Date(timeIntervalSince1970: 1000)
-        let vm = TimerViewModel(startTime: 100, now: { currentDate })
+        let vm = TimerViewModel(startTime: 100, settingsStore: makeSettingsStore(), now: { currentDate })
         vm.start()
         #expect(vm.timeRemaining == 100)
 
@@ -34,7 +44,7 @@ struct TimerViewModelTests {
 
     @Test func pauseAndResumePreserveRemaining() async throws {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let vm = TimerViewModel(startTime: 100, now: { currentDate })
+        let vm = TimerViewModel(startTime: 100, settingsStore: makeSettingsStore(), now: { currentDate })
         vm.start()
 
         currentDate = currentDate.addingTimeInterval(40)
@@ -56,7 +66,7 @@ struct TimerViewModelTests {
 
     @Test func sleepAndWakeDoesNotConsumeTimeOrSwitchModes() async throws {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let vm = TimerViewModel(startTime: 50, now: { currentDate })
+        let vm = TimerViewModel(startTime: 50, settingsStore: makeSettingsStore(), now: { currentDate })
         vm.start()
 
         currentDate = currentDate.addingTimeInterval(40)
@@ -80,14 +90,15 @@ struct TimerViewModelTests {
 
     @Test func workSessionEndTransitionsToBreakMode() async throws {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let vm = TimerViewModel(startTime: 50, now: { currentDate })
+        let settingsStore = makeSettingsStore(breakMinutes: 1)
+        let vm = TimerViewModel(startTime: 50, settingsStore: settingsStore, now: { currentDate })
         vm.start()
 
         currentDate = currentDate.addingTimeInterval(50)
         vm.tick()
 
         #expect(vm.mode == .breakTime)
-        #expect(vm.timeRemaining == TimerViewModel.breakDuration)
+        #expect(vm.timeRemaining == settingsStore.breakMinutes * 60)
         #expect(vm.isRunning == true)
 
         vm.stop()
@@ -95,15 +106,16 @@ struct TimerViewModelTests {
 
     @Test func breakSessionEndTransitionsToWorkMode() async throws {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let vm = TimerViewModel(startTime: TimerViewModel.breakDuration, now: { currentDate })
+        let settingsStore = makeSettingsStore(workMinutes: 2, breakMinutes: 1)
+        let vm = TimerViewModel(startTime: settingsStore.breakMinutes * 60, settingsStore: settingsStore, now: { currentDate })
         vm.mode = .breakTime
         vm.start()
 
-        currentDate = currentDate.addingTimeInterval(TimeInterval(TimerViewModel.breakDuration))
+        currentDate = currentDate.addingTimeInterval(TimeInterval(settingsStore.breakMinutes * 60))
         vm.tick()
 
         #expect(vm.mode == .work)
-        #expect(vm.timeRemaining == TimerViewModel.workDuration)
+        #expect(vm.timeRemaining == settingsStore.workMinutes * 60)
         #expect(vm.isRunning == true)
 
         vm.stop()
@@ -111,7 +123,7 @@ struct TimerViewModelTests {
 
     @Test func oneMinuteWarningFiresExactlyOnceForLongSession() async throws {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let vm = TimerViewModel(startTime: 70, now: { currentDate })
+        let vm = TimerViewModel(startTime: 70, settingsStore: makeSettingsStore(), now: { currentDate })
         vm.start()
         #expect(vm.hasTriggeredOneMinuteWarning == false)
 
@@ -130,7 +142,7 @@ struct TimerViewModelTests {
 
     @Test func oneMinuteWarningDoesNotFireForShortSession() async throws {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let vm = TimerViewModel(startTime: 50, now: { currentDate })
+        let vm = TimerViewModel(startTime: 50, settingsStore: makeSettingsStore(), now: { currentDate })
         vm.start()
 
         currentDate = currentDate.addingTimeInterval(45)
@@ -143,11 +155,26 @@ struct TimerViewModelTests {
 
     @Test func oneMinuteWarningDoesNotFireInBreakMode() async throws {
         var currentDate = Date(timeIntervalSince1970: 0)
-        let vm = TimerViewModel(startTime: TimerViewModel.breakDuration, now: { currentDate })
+        let settingsStore = makeSettingsStore(breakMinutes: 1)
+        let vm = TimerViewModel(startTime: settingsStore.breakMinutes * 60, settingsStore: settingsStore, now: { currentDate })
         vm.mode = .breakTime
         vm.start()
 
-        currentDate = currentDate.addingTimeInterval(TimeInterval(TimerViewModel.breakDuration - 5))
+        currentDate = currentDate.addingTimeInterval(TimeInterval(settingsStore.breakMinutes * 60 - 5))
+        vm.tick()
+        #expect(vm.hasTriggeredOneMinuteWarning == false)
+
+        vm.stop()
+    }
+
+    @Test func oneMinuteWarningDoesNotFireWhenDisabledInSettings() async throws {
+        var currentDate = Date(timeIntervalSince1970: 0)
+        let settingsStore = makeSettingsStore()
+        settingsStore.oneMinuteWarningEnabled = false
+        let vm = TimerViewModel(startTime: 70, settingsStore: settingsStore, now: { currentDate })
+        vm.start()
+
+        currentDate = currentDate.addingTimeInterval(11) // remaining = 59
         vm.tick()
         #expect(vm.hasTriggeredOneMinuteWarning == false)
 

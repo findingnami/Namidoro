@@ -9,41 +9,52 @@ import SwiftUI
 
 struct WorkModeView: View {
     @EnvironmentObject var timerVM: TimerViewModel
+    @State private var showingSettings = false
 
     var body: some View {
-        VStack(spacing: 12) {
-            Text(timerVM.timeDisplay)
-                .font(.system(size: 44, weight: .semibold, design: .rounded))
-                .monospacedDigit()
+        if showingSettings {
+            SettingsPanelView(onBack: { showingSettings = false })
+        } else {
+            VStack(spacing: 12) {
+                Text(timerVM.timeDisplay)
+                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
 
-            TaskListView()
+                TaskListView()
 
-            Divider()
-                .opacity(0.3)
+                Divider()
+                    .opacity(0.3)
 
-            VStack(spacing: 2) {
-                MenuRow(title: timerVM.isRunning ? "Pause" : "Start", systemImage: timerVM.isRunning ? "pause.fill" : "play.fill") {
-                    timerVM.isRunning ? timerVM.pause() : timerVM.start()
-                    AppDelegate.closeMenuBarExtraPopover()
-                }
+                VStack(spacing: 2) {
+                    MenuRow(title: timerVM.isRunning ? "Pause" : "Start", systemImage: timerVM.isRunning ? "pause.fill" : "play.fill") {
+                        timerVM.isRunning ? timerVM.pause() : timerVM.start()
+                        AppDelegate.closeMenuBarExtraPopover()
+                    }
 
-                MenuRow(title: "Start Break Now", systemImage: "cup.and.saucer") {
-                    timerVM.switchToBreakMode()
-                    AppDelegate.closeMenuBarExtraPopover()
-                }
+                    MenuRow(title: "Start Break Now", systemImage: "cup.and.saucer") {
+                        timerVM.switchToBreakMode()
+                        AppDelegate.closeMenuBarExtraPopover()
+                    }
 
-                MenuRow(title: "Quit", systemImage: "power", tint: .secondary) {
-                    NSApplication.shared.terminate(nil)
+                    // Does not close the popover — opens the inline panel below instead.
+                    MenuRow(title: "Settings", systemImage: "gearshape") {
+                        showingSettings = true
+                    }
+
+                    MenuRow(title: "Quit", systemImage: "power", tint: .secondary) {
+                        NSApplication.shared.terminate(nil)
+                    }
                 }
             }
+            .frame(width: 250)
+            .padding()
         }
-        .frame(width: 250)
-        .padding()
     }
 }
 
 #Preview {
-    let sampleTimer = TimerViewModel(startTime: TimerViewModel.workDuration)
+    let settingsStore = SettingsStore()
+    let sampleTimer = TimerViewModel(startTime: settingsStore.workMinutes * 60, settingsStore: settingsStore)
     let sampleStore = TaskStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-tasks-\(UUID()).json"))
     sampleStore.tasks = [
         TaskItem(title: "Write quarterly report"),
@@ -54,4 +65,5 @@ struct WorkModeView: View {
     return WorkModeView()
         .environmentObject(sampleTimer)
         .environmentObject(sampleStore)
+        .environmentObject(settingsStore)
 }

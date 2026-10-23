@@ -19,6 +19,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // guaranteed set yet at that point) so the menu and the break overlay always share the same
     // TimerViewModel instance instead of each ending up with their own.
     var timerVM: TimerViewModel?
+    var settingsStore: SettingsStore?
 
     private var outsideClickMonitors: [Any] = []
 

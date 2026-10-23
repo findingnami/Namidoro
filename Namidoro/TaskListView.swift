@@ -7,8 +7,9 @@ import SwiftUI
 
 // Material-based on macOS < 26, Liquid Glass on 26+ — the task card is the one
 // place in the popover asked to show real depth, so it gets its own helper here
-// rather than a one-off background() at each call site.
-private extension View {
+// rather than a one-off background() at each call site. Internal (not private) so
+// SettingsPanelView can reuse the same card styling.
+extension View {
     @ViewBuilder
     func taskCardBackground() -> some View {
         if #available(macOS 26.0, *) {

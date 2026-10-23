@@ -48,7 +48,8 @@ struct FullScreenBreakView: View {
 }
 
 #Preview {
-    let sampleTimer = TimerViewModel(startTime: TimerViewModel.breakDuration)
+    let settingsStore = SettingsStore()
+    let sampleTimer = TimerViewModel(startTime: settingsStore.breakMinutes * 60, settingsStore: settingsStore)
     sampleTimer.mode = .breakTime
     return FullScreenBreakView()
         .environmentObject(sampleTimer)

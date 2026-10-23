@@ -22,14 +22,15 @@ class TimerViewModel: ObservableObject {
         case breakTime
     }
 
-    // TODO: 25 * 60 / 5 * 60 for release
-    static let workDuration: Int = 2 * 60
-    static let breakDuration: Int = 1 * 60
-
     @Published var timeRemaining: Int
     @Published var isRunning: Bool = false
     @Published var mode: TimerMode = .work
 
+    // var, not let: NamidoroApp can't reference one @StateObject from another's default-value
+    // expression (Swift struct property defaults can't see sibling properties or self), so the
+    // real shared SettingsStore is wired in after construction, from body — mirroring how
+    // AppDelegate.timerVM is handed over post-construction rather than threaded through init.
+    var settingsStore: SettingsStore
     private let now: () -> Date
     // The wall-clock instant the current session ends. timeRemaining is derived from this on
     // every tick instead of being decremented — a Timer that's suspended for the duration of
@@ -48,10 +49,12 @@ class TimerViewModel: ObservableObject {
     private var sleepObserver: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
 
-    init(startTime: Int, now: @escaping () -> Date = Date.init) {
-        self.timeRemaining = startTime
+    init(startTime: Int? = nil, settingsStore: SettingsStore = SettingsStore(), now: @escaping () -> Date = Date.init) {
+        self.settingsStore = settingsStore
         self.now = now
-        self.workSessionDuration = startTime
+        let resolvedStart = startTime ?? settingsStore.workMinutes * 60
+        self.timeRemaining = resolvedStart
+        self.workSessionDuration = resolvedStart
         // Timer is started explicitly from NamidoroApp.body, not here — starting it on creation
         // would let any throwaway TimerViewModel run its own live Timer in the background.
         observeSleepWake()
@@ -129,11 +132,14 @@ class TimerViewModel: ObservableObject {
         timeRemaining = max(0, Int(ceil(endDate.timeIntervalSince(now()))))
 
         if mode == .work,
+           settingsStore.oneMinuteWarningEnabled,
            !hasTriggeredOneMinuteWarning,
            workSessionDuration > 60,
            timeRemaining <= 60 {
             hasTriggeredOneMinuteWarning = true
-            Self.playSound(named: "Alert")
+            if settingsStore.soundsEnabled {
+                Self.playSound(named: "Alert")
+            }
             showMenuBarNotification(title: "Break Incoming", message: "1 minute left before your break!")
         }
 
@@ -183,10 +189,14 @@ class TimerViewModel: ObservableObject {
 
         stop()
         mode = .work
-        workSessionDuration = Self.workDuration
+        // Read fresh from settingsStore here (not cached earlier) so a setting change made
+        // mid-session only takes effect for this NEW session, never the one in progress.
+        workSessionDuration = settingsStore.workMinutes * 60
         timeRemaining = workSessionDuration
         hasTriggeredOneMinuteWarning = false  // Reset the flag for the new work session
-        Self.playSound(named: "Mode")
+        if settingsStore.soundsEnabled {
+            Self.playSound(named: "Mode")
+        }
         NotificationCenter.default.post(name: .didExitBreakMode, object: self)
         start()
     }
@@ -197,9 +207,11 @@ class TimerViewModel: ObservableObject {
 
         stop()
         mode = .breakTime
-        timeRemaining = Self.breakDuration
+        timeRemaining = settingsStore.breakMinutes * 60
         hasTriggeredOneMinuteWarning = false  // Reset for next work session
-        Self.playSound(named: "Mode")
+        if settingsStore.soundsEnabled {
+            Self.playSound(named: "Mode")
+        }
         NotificationCenter.default.post(name: .didEnterBreakMode, object: self)
         start()
     }

@@ -78,9 +78,11 @@ struct MenuContentView: View {
 }
 
 #Preview("Break") {
-    let sampleTimer = TimerViewModel(startTime: TimerViewModel.breakDuration)
+    let settingsStore = SettingsStore()
+    let sampleTimer = TimerViewModel(startTime: settingsStore.breakMinutes * 60, settingsStore: settingsStore)
     sampleTimer.mode = .breakTime
     return MenuContentView()
         .environmentObject(sampleTimer)
         .environmentObject(TaskStore())
+        .environmentObject(settingsStore)
 }
