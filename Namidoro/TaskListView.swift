@@ -47,23 +47,18 @@ struct TaskRowView: View {
 
             Text(task.title)
                 .strikethrough(task.isDone)
-                .foregroundStyle(isHovering ? Color.white : (task.isDone ? Color.secondary : Color.primary))
+                .fontWeight(isSelected ? .semibold : .regular)
+                .foregroundStyle(task.isDone ? Color.secondary : Color.primary)
                 .opacity(task.isDone ? 0.6 : 1.0)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.caption)
-                    .foregroundStyle(isHovering ? Color.white : Color.accentColor)
-            }
 
             if isHovering {
                 Button {
                     taskStore.delete(task)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(isHovering ? Color.white : Color.secondary)
+                        .foregroundStyle(Color.secondary)
                 }
                 .buttonStyle(.plain)
             }
@@ -73,8 +68,14 @@ struct TaskRowView: View {
         .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(isHovering ? Color.accentColor.opacity(0.85) : (isSelected ? Color.accentColor.opacity(0.15) : Color.clear))
+                .fill(isSelected ? Color.accentColor.opacity(0.16) : (isHovering ? Color.primary.opacity(0.06) : Color.clear))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(isSelected ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1)
+                )
         )
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
+        .animation(.easeInOut(duration: 0.15), value: isSelected)
         .onHover { hovering in
             isHovering = hovering
         }
