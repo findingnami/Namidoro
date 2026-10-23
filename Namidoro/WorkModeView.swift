@@ -15,15 +15,17 @@ struct WorkModeView: View {
             Text(timerVM.timeDisplay)
                 .font(.title)
 
-            Button(timerVM.isRunning ? "Pause" : "Start") {
+            MenuRow(title: timerVM.isRunning ? "Pause" : "Start") {
                 timerVM.isRunning ? timerVM.pause() : timerVM.start()
+                AppDelegate.closeMenuBarExtraPopover()
             }
 
-            Button("Start Break Now") {
+            MenuRow(title: "Start Break Now") {
                 timerVM.switchToBreakMode()
+                AppDelegate.closeMenuBarExtraPopover()
             }
 
-            Button("Quit") {
+            MenuRow(title: "Quit") {
                 NSApplication.shared.terminate(nil)
             }
         }
@@ -33,7 +35,7 @@ struct WorkModeView: View {
 }
 
 #Preview {
-    let sampleTimer = TimerViewModel(startTime: 25 * 60)
+    let sampleTimer = TimerViewModel(startTime: TimerViewModel.workDuration)
     return WorkModeView()
         .environmentObject(sampleTimer)
 }
